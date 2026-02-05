@@ -241,50 +241,52 @@ test('send uploads media before creating post', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'socialbu_test_');
     file_put_contents($tempFile, 'fake image');
 
-    Http::fake([
-        '*/upload_media' => Http::response([
-            'signed_url' => 'https://s3.example.com/upload',
-            'key' => 'uploads/test.jpg',
-            'url' => 'https://cdn.example.com/test.jpg',
-            'secure_key' => 'secure-123',
-        ]),
-        's3.example.com/*' => Http::response('', 200),
-        '*/upload_media/status*' => Http::response([
-            'success' => true,
-            'upload_token' => 'token-456',
-        ]),
-        '*/posts*' => Http::response([
-            'success' => true,
-            'posts' => [
-                [
-                    'id' => 123,
-                    'content' => 'With media!',
-                    'status' => 'published',
-                    'account_ids' => [100],
-                    'created_at' => '2025-01-15 10:00:00',
+    try {
+        Http::fake([
+            '*/upload_media' => Http::response([
+                'signed_url' => 'https://s3.example.com/upload',
+                'key' => 'uploads/test.jpg',
+                'url' => 'https://cdn.example.com/test.jpg',
+                'secure_key' => 'secure-123',
+            ]),
+            's3.example.com/*' => Http::response('', 200),
+            '*/upload_media/status*' => Http::response([
+                'success' => true,
+                'upload_token' => 'token-456',
+            ]),
+            '*/posts*' => Http::response([
+                'success' => true,
+                'posts' => [
+                    [
+                        'id' => 123,
+                        'content' => 'With media!',
+                        'status' => 'published',
+                        'account_ids' => [100],
+                        'created_at' => '2025-01-15 10:00:00',
+                    ],
                 ],
-            ],
-        ]),
-    ]);
+            ]),
+        ]);
 
-    $this->client->create()
-        ->content('With media!')
-        ->media($tempFile)
-        ->send();
+        $this->client->create()
+            ->content('With media!')
+            ->media($tempFile)
+            ->send();
 
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/posts')) {
-            return true;
-        }
-        if (str_contains($request->url(), '/upload')) {
-            return true;
-        }
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/posts')) {
+                return true;
+            }
+            if (str_contains($request->url(), '/upload')) {
+                return true;
+            }
 
-        return isset($request['existing_attachments'])
-            && $request['existing_attachments'][0]['upload_token'] === 'token-456';
-    });
-
-    unlink($tempFile);
+            return isset($request['existing_attachments'])
+                && $request['existing_attachments'][0]['upload_token'] === 'token-456';
+        });
+    } finally {
+        @unlink($tempFile);
+    }
 });
 
 test('fluent interface is chainable', function () {

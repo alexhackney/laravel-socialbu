@@ -24,11 +24,11 @@ final readonly class PaginatedResponse
         $pagination = $data['pagination'] ?? $data['meta'] ?? $data;
 
         return new self(
-            items: $data[$itemsKey] ?? $data['data'] ?? [],
-            currentPage: (int) ($pagination['current_page'] ?? $pagination['currentPage'] ?? 1),
-            lastPage: (int) ($pagination['last_page'] ?? $pagination['lastPage'] ?? 1),
-            perPage: (int) ($pagination['per_page'] ?? $pagination['perPage'] ?? 15),
-            total: (int) ($pagination['total'] ?? count($data[$itemsKey] ?? $data['data'] ?? [])),
+            items: $data[$itemsKey] ?? $data['items'] ?? $data['data'] ?? [],
+            currentPage: (int) ($pagination['currentPage'] ?? $pagination['current_page'] ?? 1),
+            lastPage: (int) ($pagination['lastPage'] ?? $pagination['last_page'] ?? 1),
+            perPage: (int) ($pagination['perPage'] ?? $pagination['per_page'] ?? 15),
+            total: (int) ($pagination['total'] ?? count($data[$itemsKey] ?? $data['items'] ?? $data['data'] ?? [])),
         );
     }
 

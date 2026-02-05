@@ -112,6 +112,24 @@ test('all returns all accounts', function () {
     expect($accounts)->toHaveCount(2);
 });
 
+test('list handles items key from spec', function () {
+    Http::fake([
+        '*/accounts*' => Http::response([
+            'items' => [
+                ['id' => 1, 'name' => 'Account 1', 'type' => 'facebook', 'status' => 'active'],
+            ],
+            'currentPage' => 1,
+            'lastPage' => 1,
+            'total' => 1,
+        ]),
+    ]);
+
+    $accounts = $this->client->accounts()->list();
+
+    expect($accounts)->toHaveCount(1);
+    expect($accounts[0]->id)->toBe(1);
+});
+
 test('lazy paginates through multiple pages', function () {
     Http::fake([
         '*/accounts*' => Http::sequence()

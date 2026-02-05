@@ -7,26 +7,16 @@ namespace Hei\SocialBu\Webhooks;
 final readonly class WebhookPayload
 {
     public function __construct(
-        public string $type,
         public array $data,
     ) {}
 
     public static function fromArray(array $data): self
     {
+        // Webhook payloads are flat (no nesting under a 'data' key).
+        // If a 'data' wrapper exists, unwrap it for backwards compatibility.
         return new self(
-            type: $data['type'] ?? $data['event'] ?? 'unknown',
             data: $data['data'] ?? $data,
         );
-    }
-
-    public function isPostEvent(): bool
-    {
-        return str_starts_with($this->type, 'post.');
-    }
-
-    public function isAccountEvent(): bool
-    {
-        return str_starts_with($this->type, 'account.');
     }
 
     public function getPostId(): ?int
@@ -44,8 +34,27 @@ final readonly class WebhookPayload
         return $this->data['status'] ?? null;
     }
 
-    public function getAction(): ?string
+    /**
+     * Get the account action (added, updated, connected, disconnected).
+     */
+    public function getAccountAction(): ?string
     {
-        return $this->data['action'] ?? null;
+        return $this->data['account_action'] ?? $this->data['action'] ?? null;
+    }
+
+    /**
+     * Get the account type from an account webhook.
+     */
+    public function getAccountType(): ?string
+    {
+        return $this->data['account_type'] ?? $this->data['type'] ?? $this->data['platform'] ?? null;
+    }
+
+    /**
+     * Get the account name from an account webhook.
+     */
+    public function getAccountName(): ?string
+    {
+        return $this->data['account_name'] ?? $this->data['name'] ?? null;
     }
 }

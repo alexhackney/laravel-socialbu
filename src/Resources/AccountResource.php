@@ -30,7 +30,7 @@ class AccountResource
 
         $response = $this->client->get('/accounts', $query);
 
-        $items = $response['data'] ?? $response['accounts'] ?? [];
+        $items = $response['accounts'] ?? $response['items'] ?? $response['data'] ?? [];
 
         return array_map(
             fn (array $data) => Account::fromArray($data),
@@ -45,7 +45,7 @@ class AccountResource
     {
         $response = $this->client->get("/accounts/{$accountId}");
 
-        $data = $response['data'] ?? $response['account'] ?? $response;
+        $data = $response['account'] ?? $response['data'] ?? $response;
 
         return Account::fromArray($data);
     }

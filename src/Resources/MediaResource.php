@@ -122,6 +122,8 @@ class MediaResource
                 mimeType: $file->mimeType,
                 name: $file->name,
             );
+        } catch (MediaUploadException $e) {
+            throw $e;
         } catch (SocialBuException $e) {
             throw MediaUploadException::atStep(MediaUploadException::STEP_CONFIRMATION, $e);
         }

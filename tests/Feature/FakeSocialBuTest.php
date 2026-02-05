@@ -181,3 +181,92 @@ test('uploads get sequential ids', function () {
     expect($upload1->uploadToken)->toBe('fake-token-1');
     expect($upload2->uploadToken)->toBe('fake-token-2');
 });
+
+test('fake posts().update() returns true', function () {
+    $fake = FakeSocialBu::fake();
+
+    $result = $fake->posts()->update(1, ['content' => 'Updated']);
+
+    expect($result)->toBeTrue();
+});
+
+test('fake posts().delete() returns true', function () {
+    $fake = FakeSocialBu::fake();
+
+    $result = $fake->posts()->delete(1);
+
+    expect($result)->toBeTrue();
+});
+
+test('fake posts().all() returns fake posts', function () {
+    $fake = FakeSocialBu::fake();
+    $fake->withPosts([
+        ['id' => 1, 'content' => 'Post 1', 'created_at' => '2025-01-01'],
+        ['id' => 2, 'content' => 'Post 2', 'created_at' => '2025-01-01'],
+    ]);
+
+    $posts = $fake->posts()->all();
+
+    expect($posts)->toHaveCount(2);
+});
+
+test('fake posts().paginate() returns PaginatedResponse', function () {
+    $fake = FakeSocialBu::fake();
+    $fake->withPosts([
+        ['id' => 1, 'content' => 'Post 1', 'created_at' => '2025-01-01'],
+    ]);
+
+    $response = $fake->posts()->paginate();
+
+    expect($response)->toBeInstanceOf(\Hei\SocialBu\Data\PaginatedResponse::class);
+    expect($response->items)->toHaveCount(1);
+    expect($response->currentPage)->toBe(1);
+});
+
+test('fake accounts().all() returns fake accounts', function () {
+    $fake = FakeSocialBu::fake();
+    $fake->withAccounts([
+        ['id' => 1, 'name' => 'Account 1', 'type' => 'facebook'],
+    ]);
+
+    $accounts = $fake->accounts()->all();
+
+    expect($accounts)->toHaveCount(1);
+});
+
+test('fake accounts().paginate() returns PaginatedResponse', function () {
+    $fake = FakeSocialBu::fake();
+    $fake->withAccounts([
+        ['id' => 1, 'name' => 'Account 1', 'type' => 'facebook'],
+    ]);
+
+    $response = $fake->accounts()->paginate();
+
+    expect($response)->toBeInstanceOf(\Hei\SocialBu\Data\PaginatedResponse::class);
+    expect($response->items)->toHaveCount(1);
+});
+
+test('throwOnUpload throws on next upload', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->throwOnUpload(new SocialBuException('Upload failed'));
+
+    $fake->media()->upload('/path/to/file.jpg');
+})->throws(SocialBuException::class, 'Upload failed');
+
+test('throwOnUpload only affects next upload', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->throwOnUpload(new SocialBuException('Upload failed'));
+
+    try {
+        $fake->media()->upload('/path/1.jpg');
+    } catch (SocialBuException) {
+        // Expected
+    }
+
+    // Second upload should work
+    $upload = $fake->media()->upload('/path/2.jpg');
+
+    expect($upload->uploadToken)->not->toBeEmpty();
+});

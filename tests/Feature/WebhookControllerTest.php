@@ -21,13 +21,11 @@ beforeEach(function () {
 test('post webhook dispatches PostStatusChanged event', function () {
     Event::fake([PostStatusChanged::class]);
 
+    // Per spec: flat payload with post_id, account_id, status
     $response = $this->postJson('/webhooks/socialbu/post', [
-        'type' => 'post.published',
-        'data' => [
-            'post_id' => 123,
-            'account_id' => 456,
-            'status' => 'published',
-        ],
+        'post_id' => 123,
+        'account_id' => 456,
+        'status' => 'published',
     ]);
 
     $response->assertOk();
@@ -44,10 +42,7 @@ test('post webhook returns 400 for invalid payload', function () {
     Event::fake([PostStatusChanged::class]);
 
     $response = $this->postJson('/webhooks/socialbu/post', [
-        'type' => 'post.published',
-        'data' => [
-            // Missing required fields
-        ],
+        // Missing required fields
     ]);
 
     $response->assertStatus(400);
@@ -59,14 +54,12 @@ test('post webhook returns 400 for invalid payload', function () {
 test('account webhook dispatches AccountStatusChanged event', function () {
     Event::fake([AccountStatusChanged::class]);
 
+    // Per spec: flat payload with account_action, account_id, account_type, account_name
     $response = $this->postJson('/webhooks/socialbu/account', [
-        'type' => 'account.connected',
-        'data' => [
-            'account_id' => 789,
-            'action' => 'connected',
-            'type' => 'facebook',
-            'name' => 'My Facebook Page',
-        ],
+        'account_id' => 789,
+        'account_action' => 'connected',
+        'account_type' => 'facebook',
+        'account_name' => 'My Facebook Page',
     ]);
 
     $response->assertOk();
@@ -84,10 +77,7 @@ test('account webhook returns 400 for invalid payload', function () {
     Event::fake([AccountStatusChanged::class]);
 
     $response = $this->postJson('/webhooks/socialbu/account', [
-        'type' => 'account.connected',
-        'data' => [
-            // Missing required fields
-        ],
+        // Missing required fields
     ]);
 
     $response->assertStatus(400);
@@ -96,17 +86,15 @@ test('account webhook returns 400 for invalid payload', function () {
     Event::assertNotDispatched(AccountStatusChanged::class);
 });
 
-test('webhook payload parsing works correctly', function () {
+test('post webhook handles nested data wrapper for backwards compatibility', function () {
     Event::fake([PostStatusChanged::class]);
 
-    // Test with nested data structure
+    // Some integrations may wrap payload in a 'data' key
     $response = $this->postJson('/webhooks/socialbu/post', [
-        'event' => 'post.status',
         'data' => [
             'post_id' => 999,
             'account_id' => 888,
             'status' => 'failed',
-            'error' => 'Rate limited',
         ],
     ]);
 
@@ -114,7 +102,62 @@ test('webhook payload parsing works correctly', function () {
 
     Event::assertDispatched(PostStatusChanged::class, function ($event) {
         return $event->postId === 999
-            && $event->status === 'failed'
-            && $event->payload['error'] === 'Rate limited';
+            && $event->status === 'failed';
     });
+});
+
+test('webhook rejects request with invalid signature when secret is configured', function () {
+    Event::fake([PostStatusChanged::class]);
+
+    config(['socialbu.webhooks.secret' => 'my-webhook-secret']);
+
+    $response = $this->postJson('/webhooks/socialbu/post', [
+        'post_id' => 123,
+        'account_id' => 456,
+        'status' => 'published',
+    ]);
+
+    $response->assertStatus(403);
+    $response->assertJson(['error' => 'Invalid signature']);
+
+    Event::assertNotDispatched(PostStatusChanged::class);
+});
+
+test('webhook accepts request with valid signature', function () {
+    Event::fake([PostStatusChanged::class]);
+
+    $secret = 'my-webhook-secret';
+    config(['socialbu.webhooks.secret' => $secret]);
+
+    $payload = json_encode([
+        'post_id' => 123,
+        'account_id' => 456,
+        'status' => 'published',
+    ]);
+
+    $signature = hash_hmac('sha256', $payload, $secret);
+
+    $response = $this->postJson('/webhooks/socialbu/post', json_decode($payload, true), [
+        'X-SocialBu-Signature' => $signature,
+    ]);
+
+    $response->assertOk();
+
+    Event::assertDispatched(PostStatusChanged::class);
+});
+
+test('webhook passes without signature when no secret is configured', function () {
+    Event::fake([PostStatusChanged::class]);
+
+    config(['socialbu.webhooks.secret' => null]);
+
+    $response = $this->postJson('/webhooks/socialbu/post', [
+        'post_id' => 123,
+        'account_id' => 456,
+        'status' => 'published',
+    ]);
+
+    $response->assertOk();
+
+    Event::assertDispatched(PostStatusChanged::class);
 });

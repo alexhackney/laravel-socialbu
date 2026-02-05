@@ -14,6 +14,8 @@ class WebhookController extends Controller
 {
     /**
      * Handle post status webhook.
+     *
+     * Expects flat payload: {post_id, account_id, status}
      */
     public function handlePost(Request $request): JsonResponse
     {
@@ -43,6 +45,8 @@ class WebhookController extends Controller
 
     /**
      * Handle account status webhook.
+     *
+     * Expects flat payload: {account_action, account_id, account_type, account_name}
      */
     public function handleAccount(Request $request): JsonResponse
     {
@@ -53,9 +57,9 @@ class WebhookController extends Controller
         $payload = WebhookPayload::fromArray($request->all());
 
         $accountId = $payload->getAccountId();
-        $action = $payload->getAction();
-        $accountType = $payload->data['type'] ?? $payload->data['platform'] ?? 'unknown';
-        $accountName = $payload->data['name'] ?? '';
+        $action = $payload->getAccountAction();
+        $accountType = $payload->getAccountType() ?? 'unknown';
+        $accountName = $payload->getAccountName() ?? '';
 
         if ($accountId === null || $action === null) {
             return response()->json(['error' => 'Invalid payload'], 400);

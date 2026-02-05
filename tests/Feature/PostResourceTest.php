@@ -173,6 +173,36 @@ test('paginate returns PaginatedResponse', function () {
     expect($response->items[0])->toBeInstanceOf(Post::class);
 });
 
+test('all returns all posts', function () {
+    Http::fake([
+        '*/posts*' => Http::response($this->fixture('posts.json')),
+    ]);
+
+    $posts = $this->client->posts()->all();
+
+    expect($posts)->toBeArray();
+    expect($posts)->toHaveCount(2);
+    expect($posts[0])->toBeInstanceOf(Post::class);
+});
+
+test('list handles items key from spec', function () {
+    Http::fake([
+        '*/posts*' => Http::response([
+            'items' => [
+                ['id' => 101, 'content' => 'Hello', 'status' => 'published', 'account_ids' => [1], 'created_at' => '2025-01-15 10:00:00'],
+            ],
+            'currentPage' => 1,
+            'lastPage' => 1,
+            'total' => 1,
+        ]),
+    ]);
+
+    $posts = $this->client->posts()->list();
+
+    expect($posts)->toHaveCount(1);
+    expect($posts[0]->id)->toBe(101);
+});
+
 test('lazy yields posts one at a time', function () {
     Http::fake([
         '*/posts*' => Http::response([

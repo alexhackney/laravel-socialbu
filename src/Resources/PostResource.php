@@ -18,7 +18,7 @@ class PostResource
     /**
      * List posts with optional filtering.
      *
-     * @param  string|null  $type  Filter by type: 'scheduled', 'published', 'draft', 'failed'
+     * @param  string|null  $type  Filter by type: 'scheduled', 'published', 'draft', 'awaiting_approval', 'scheduled_or_awaiting_approval'
      * @return array<Post>
      */
     public function list(?string $type = null, int $page = 1, int $perPage = 15): array
@@ -31,7 +31,7 @@ class PostResource
 
         $response = $this->client->get('/posts', $query);
 
-        $items = $response['data'] ?? $response['posts'] ?? [];
+        $items = $response['posts'] ?? $response['items'] ?? $response['data'] ?? [];
 
         return array_map(
             fn (array $data) => Post::fromArray($data),
@@ -46,7 +46,7 @@ class PostResource
     {
         $response = $this->client->get("/posts/{$postId}");
 
-        $data = $response['data'] ?? $response['post'] ?? $response;
+        $data = $response['post'] ?? $response['data'] ?? $response;
 
         return Post::fromArray($data);
     }
