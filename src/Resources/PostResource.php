@@ -31,7 +31,9 @@ class PostResource
 
         $response = $this->client->get('/posts', $query);
 
-        $items = $response['posts'] ?? $response['items'] ?? $response['data'] ?? [];
+        $items = array_is_list($response)
+            ? $response
+            : $response['posts'] ?? $response['items'] ?? $response['data'] ?? [];
 
         return array_map(
             fn (array $data) => Post::fromArray($data),

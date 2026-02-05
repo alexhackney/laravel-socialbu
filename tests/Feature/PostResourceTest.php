@@ -185,6 +185,21 @@ test('all returns all posts', function () {
     expect($posts[0])->toBeInstanceOf(Post::class);
 });
 
+test('list handles plain array response', function () {
+    Http::fake([
+        '*/posts*' => Http::response([
+            ['id' => 101, 'content' => 'Post 1', 'status' => 'published', 'account_ids' => [1], 'created_at' => '2025-01-15 10:00:00'],
+            ['id' => 102, 'content' => 'Post 2', 'status' => 'scheduled', 'account_ids' => [2], 'created_at' => '2025-01-15 10:00:00'],
+        ]),
+    ]);
+
+    $posts = $this->client->posts()->list();
+
+    expect($posts)->toHaveCount(2);
+    expect($posts[0]->id)->toBe(101);
+    expect($posts[1]->id)->toBe(102);
+});
+
 test('list handles items key from spec', function () {
     Http::fake([
         '*/posts*' => Http::response([

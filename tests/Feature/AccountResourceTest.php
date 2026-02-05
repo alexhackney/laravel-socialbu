@@ -132,6 +132,34 @@ test('all fetches all pages', function () {
     expect($accounts[1]->id)->toBe(2);
 });
 
+test('list handles plain array response', function () {
+    Http::fake([
+        '*/accounts*' => Http::response([
+            ['id' => 1, 'name' => 'Account 1', 'type' => 'twitter.profile', 'active' => true],
+            ['id' => 2, 'name' => 'Account 2', 'type' => 'instagram', 'active' => true],
+        ]),
+    ]);
+
+    $accounts = $this->client->accounts()->list();
+
+    expect($accounts)->toHaveCount(2);
+    expect($accounts[0]->id)->toBe(1);
+    expect($accounts[1]->id)->toBe(2);
+});
+
+test('all handles plain array response', function () {
+    Http::fake([
+        '*/accounts*' => Http::response([
+            ['id' => 1, 'name' => 'Account 1', 'type' => 'twitter.profile', 'active' => true],
+        ]),
+    ]);
+
+    $accounts = $this->client->accounts()->all();
+
+    expect($accounts)->toHaveCount(1);
+    expect($accounts[0]->id)->toBe(1);
+});
+
 test('list handles items key from spec', function () {
     Http::fake([
         '*/accounts*' => Http::response([

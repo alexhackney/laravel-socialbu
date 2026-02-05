@@ -30,7 +30,9 @@ class AccountResource
 
         $response = $this->client->get('/accounts', $query);
 
-        $items = $response['accounts'] ?? $response['items'] ?? $response['data'] ?? [];
+        $items = array_is_list($response)
+            ? $response
+            : $response['accounts'] ?? $response['items'] ?? $response['data'] ?? [];
 
         return array_map(
             fn (array $data) => Account::fromArray($data),
