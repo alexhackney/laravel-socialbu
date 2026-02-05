@@ -54,6 +54,8 @@ class PostResource
     /**
      * Create a new post.
      *
+     * The API returns one post per account. This method returns the first post.
+     *
      * @param  array<int>  $accountIds
      * @param  array<array{upload_token: string}>|null  $attachments
      */
@@ -76,21 +78,27 @@ class PostResource
 
         $response = $this->client->post('/posts', $data);
 
-        $postData = $response['data'] ?? $response['post'] ?? $response;
+        // API returns {"success": bool, "posts": [...]} with one post per account
+        $posts = $response['posts'] ?? $response['data'] ?? [];
 
-        return Post::fromArray($postData);
+        if (is_array($posts) && ! empty($posts)) {
+            return Post::fromArray($posts[0]);
+        }
+
+        // Fallback: try to parse the response directly as a post
+        return Post::fromArray($response['post'] ?? $response);
     }
 
     /**
      * Update an existing post.
+     *
+     * The API returns {"success": bool, "message": string}, not the post object.
      */
-    public function update(int $postId, array $data): Post
+    public function update(int $postId, array $data): bool
     {
         $response = $this->client->patch("/posts/{$postId}", $data);
 
-        $postData = $response['data'] ?? $response['post'] ?? $response;
-
-        return Post::fromArray($postData);
+        return $response['success'] ?? true;
     }
 
     /**
@@ -116,7 +124,7 @@ class PostResource
 
         $response = $this->client->get('/posts', $query);
 
-        $paginated = PaginatedResponse::fromArray($response);
+        $paginated = PaginatedResponse::fromArray($response, 'posts');
 
         return new PaginatedResponse(
             items: array_map(
@@ -157,6 +165,6 @@ class PostResource
      */
     public function all(?string $type = null, int $perPage = 50): array
     {
-        return iterator_to_array($this->lazy($type, $perPage));
+        return $this->list($type, 1, $perPage);
     }
 }

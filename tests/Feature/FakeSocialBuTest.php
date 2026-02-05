@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
 use Hei\SocialBu\Data\Post;
-use Hei\SocialBu\Exceptions\PostCreationException;
+use Hei\SocialBu\Exceptions\SocialBuException;
 use Hei\SocialBu\Testing\FakeSocialBu;
 
 test('fake binds itself to container', function () {
@@ -68,19 +68,19 @@ test('assertNothingPublished passes when no posts', function () {
 test('throwOnPublish throws on next publish', function () {
     $fake = FakeSocialBu::fake();
 
-    $fake->throwOnPublish(new PostCreationException('Simulated error'));
+    $fake->throwOnPublish(new SocialBuException('Simulated error'));
 
     $fake->create()->content('Test')->to(1)->send();
-})->throws(PostCreationException::class, 'Simulated error');
+})->throws(SocialBuException::class, 'Simulated error');
 
 test('throwOnPublish only affects next publish', function () {
     $fake = FakeSocialBu::fake();
 
-    $fake->throwOnPublish(new PostCreationException('Simulated error'));
+    $fake->throwOnPublish(new SocialBuException('Simulated error'));
 
     try {
         $fake->create()->content('First')->to(1)->send();
-    } catch (PostCreationException) {
+    } catch (SocialBuException) {
         // Expected
     }
 

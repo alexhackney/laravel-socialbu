@@ -46,12 +46,10 @@ test('list passes query parameters', function () {
 test('get returns single account', function () {
     Http::fake([
         '*/accounts/1*' => Http::response([
-            'data' => [
-                'id' => 1,
-                'name' => 'My Facebook Page',
-                'type' => 'facebook',
-                'status' => 'active',
-            ],
+            'id' => 1,
+            'name' => 'My Facebook Page',
+            'type' => 'facebook',
+            'status' => 'active',
         ]),
     ]);
 
@@ -64,7 +62,13 @@ test('get returns single account', function () {
 
 test('paginate returns PaginatedResponse with accounts', function () {
     Http::fake([
-        '*/accounts*' => Http::response($this->fixture('accounts.json')),
+        '*/accounts*' => Http::response([
+            'accounts' => [
+                ['id' => 1, 'name' => 'My Facebook Page', 'type' => 'facebook', 'status' => 'active'],
+                ['id' => 2, 'name' => 'My Instagram', 'type' => 'instagram', 'status' => 'active'],
+            ],
+            'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 15, 'total' => 2],
+        ]),
     ]);
 
     $response = $this->client->accounts()->paginate();
@@ -79,7 +83,13 @@ test('paginate returns PaginatedResponse with accounts', function () {
 
 test('lazy yields accounts one at a time', function () {
     Http::fake([
-        '*/accounts*' => Http::response($this->fixture('accounts.json')),
+        '*/accounts*' => Http::response([
+            'accounts' => [
+                ['id' => 1, 'name' => 'My Facebook Page', 'type' => 'facebook', 'status' => 'active'],
+                ['id' => 2, 'name' => 'My Instagram', 'type' => 'instagram', 'status' => 'active'],
+            ],
+            'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 15, 'total' => 2],
+        ]),
     ]);
 
     $accounts = [];
@@ -106,11 +116,11 @@ test('lazy paginates through multiple pages', function () {
     Http::fake([
         '*/accounts*' => Http::sequence()
             ->push([
-                'data' => [['id' => 1, 'name' => 'Account 1', 'type' => 'facebook', 'status' => 'active']],
+                'accounts' => [['id' => 1, 'name' => 'Account 1', 'type' => 'facebook', 'status' => 'active']],
                 'pagination' => ['current_page' => 1, 'last_page' => 2, 'per_page' => 1, 'total' => 2],
             ])
             ->push([
-                'data' => [['id' => 2, 'name' => 'Account 2', 'type' => 'instagram', 'status' => 'active']],
+                'accounts' => [['id' => 2, 'name' => 'Account 2', 'type' => 'instagram', 'status' => 'active']],
                 'pagination' => ['current_page' => 2, 'last_page' => 2, 'per_page' => 1, 'total' => 2],
             ]),
     ]);

@@ -211,7 +211,10 @@ class PostBuilder
     }
 
     /**
-     * Build the payload that would be sent.
+     * Build the payload that would be sent to the API.
+     *
+     * Note: Media files listed in pending_uploads would be uploaded
+     * and replaced with existing_attachments tokens when send() is called.
      */
     private function buildPayload(): array
     {
@@ -219,7 +222,7 @@ class PostBuilder
             'content' => $this->content,
             'accounts' => $this->resolveAccountIds(),
             'publish_at' => $this->publishAt,
-            'media_paths' => $this->mediaPaths ?: null,
+            'pending_uploads' => $this->mediaPaths ?: null,
             'draft' => $this->draft ?: null,
             'postback_url' => $this->postbackUrl,
         ], fn ($value) => $value !== null);

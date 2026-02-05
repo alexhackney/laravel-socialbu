@@ -17,6 +17,10 @@ class WebhookController extends Controller
      */
     public function handlePost(Request $request): JsonResponse
     {
+        if (! $this->verifySignature($request)) {
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
         $payload = WebhookPayload::fromArray($request->all());
 
         $postId = $payload->getPostId();
@@ -42,6 +46,10 @@ class WebhookController extends Controller
      */
     public function handleAccount(Request $request): JsonResponse
     {
+        if (! $this->verifySignature($request)) {
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
         $payload = WebhookPayload::fromArray($request->all());
 
         $accountId = $payload->getAccountId();
@@ -62,5 +70,27 @@ class WebhookController extends Controller
         ));
 
         return response()->json(['received' => true]);
+    }
+
+    /**
+     * Verify the webhook signature if a secret is configured.
+     */
+    private function verifySignature(Request $request): bool
+    {
+        $secret = config('socialbu.webhooks.secret');
+
+        if ($secret === null || $secret === '') {
+            return true;
+        }
+
+        $signature = $request->header('X-SocialBu-Signature');
+
+        if ($signature === null) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $request->getContent(), $secret);
+
+        return hash_equals($expected, $signature);
     }
 }

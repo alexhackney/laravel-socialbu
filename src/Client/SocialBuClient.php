@@ -120,10 +120,15 @@ class SocialBuClient implements SocialBuClientInterface
      */
     private function request(): PendingRequest
     {
-        return Http::timeout($this->timeout)
+        $request = Http::timeout($this->timeout)
             ->connectTimeout($this->connectTimeout)
-            ->withToken($this->token ?? '')
             ->acceptJson();
+
+        if ($this->token !== null && $this->token !== '') {
+            $request = $request->withToken($this->token);
+        }
+
+        return $request;
     }
 
     /**
@@ -148,7 +153,12 @@ class SocialBuClient implements SocialBuClientInterface
             return $body;
         }
 
-        $message = $body['message'] ?? $body['error'] ?? 'Unknown error';
+        $message = $body['message'] ?? $body['error'] ?? null;
+
+        if ($message === null) {
+            $rawBody = $response->body();
+            $message = $rawBody !== '' ? "HTTP {$response->status()}: {$rawBody}" : 'Unknown error';
+        }
 
         throw match ($response->status()) {
             401 => new AuthenticationException($message, $body, $request),

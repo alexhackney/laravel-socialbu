@@ -63,7 +63,7 @@ class AccountResource
 
         $response = $this->client->get('/accounts', $query);
 
-        $paginated = PaginatedResponse::fromArray($response);
+        $paginated = PaginatedResponse::fromArray($response, 'accounts');
 
         return new PaginatedResponse(
             items: array_map(
@@ -104,6 +104,6 @@ class AccountResource
      */
     public function all(?string $type = null, int $perPage = 50): array
     {
-        return iterator_to_array($this->lazy($type, $perPage));
+        return $this->list($type, 1, $perPage);
     }
 }

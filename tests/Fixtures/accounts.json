@@ -1,5 +1,5 @@
 {
-    "data": [
+    "accounts": [
         {
             "id": 1,
             "name": "My Facebook Page",
@@ -18,11 +18,5 @@
             "profile_url": "https://instagram.com/myinsta",
             "avatar_url": "https://example.com/avatar2.jpg"
         }
-    ],
-    "pagination": {
-        "current_page": 1,
-        "last_page": 1,
-        "per_page": 15,
-        "total": 2
-    }
+    ]
 }

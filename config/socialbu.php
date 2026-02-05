@@ -55,6 +55,19 @@ return [
         'enabled' => env('SOCIALBU_WEBHOOKS_ENABLED', false),
         'prefix' => env('SOCIALBU_WEBHOOKS_PREFIX', 'webhooks/socialbu'),
         'middleware' => ['api'],
+
+        /*
+        |----------------------------------------------------------------------
+        | Webhook Secret
+        |----------------------------------------------------------------------
+        |
+        | A shared secret used to verify incoming webhook requests. When set,
+        | the controller will check the X-SocialBu-Signature header against
+        | an HMAC-SHA256 of the request body. Leave null to skip verification
+        | (not recommended in production).
+        |
+        */
+        'secret' => env('SOCIALBU_WEBHOOK_SECRET'),
     ],
 
     /*

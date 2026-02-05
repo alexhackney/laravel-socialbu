@@ -157,7 +157,7 @@ test('media adds media path', function () {
         ->media('/path/to/image.jpg')
         ->dryRun();
 
-    expect($payload['media_paths'])->toBe(['/path/to/image.jpg']);
+    expect($payload['pending_uploads'])->toBe(['/path/to/image.jpg']);
 });
 
 test('media can be called multiple times', function () {
@@ -169,7 +169,7 @@ test('media can be called multiple times', function () {
         ->media('/path/to/image2.jpg')
         ->dryRun();
 
-    expect($payload['media_paths'])->toBe([
+    expect($payload['pending_uploads'])->toBe([
         '/path/to/image1.jpg',
         '/path/to/image2.jpg',
     ]);

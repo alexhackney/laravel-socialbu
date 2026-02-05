@@ -43,13 +43,11 @@ test('list filters by type', function () {
 test('get returns single post', function () {
     Http::fake([
         '*/posts/101*' => Http::response([
-            'data' => [
-                'id' => 101,
-                'content' => 'Hello world!',
-                'status' => 'published',
-                'account_ids' => [1, 2],
-                'created_at' => '2025-01-15 10:00:00',
-            ],
+            'id' => 101,
+            'content' => 'Hello world!',
+            'status' => 'published',
+            'account_ids' => [1, 2],
+            'created_at' => '2025-01-15 10:00:00',
         ]),
     ]);
 
@@ -63,13 +61,16 @@ test('get returns single post', function () {
 test('create sends correct payload', function () {
     Http::fake([
         '*/posts*' => Http::response([
-            'data' => [
-                'id' => 200,
-                'content' => 'New post',
-                'status' => 'scheduled',
-                'account_ids' => [1, 2],
-                'publish_at' => '2025-06-15 14:00:00',
-                'created_at' => '2025-01-15 10:00:00',
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 200,
+                    'content' => 'New post',
+                    'status' => 'scheduled',
+                    'account_ids' => [1, 2],
+                    'publish_at' => '2025-06-15 14:00:00',
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
             ],
         ]),
     ]);
@@ -98,12 +99,15 @@ test('create sends correct payload', function () {
 test('create with draft flag', function () {
     Http::fake([
         '*/posts*' => Http::response([
-            'data' => [
-                'id' => 201,
-                'content' => 'Draft post',
-                'status' => 'draft',
-                'account_ids' => [1],
-                'created_at' => '2025-01-15 10:00:00',
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 201,
+                    'content' => 'Draft post',
+                    'status' => 'draft',
+                    'account_ids' => [1],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
             ],
         ]),
     ]);
@@ -122,24 +126,19 @@ test('create with draft flag', function () {
 test('update sends patch request', function () {
     Http::fake([
         '*/posts/101*' => Http::response([
-            'data' => [
-                'id' => 101,
-                'content' => 'Updated content',
-                'status' => 'scheduled',
-                'account_ids' => [1],
-                'created_at' => '2025-01-15 10:00:00',
-            ],
+            'success' => true,
+            'message' => 'Post updated successfully.',
         ]),
     ]);
 
-    $post = $this->client->posts()->update(101, ['content' => 'Updated content']);
+    $result = $this->client->posts()->update(101, ['content' => 'Updated content']);
 
     Http::assertSent(function ($request) {
         return $request->method() === 'PATCH'
             && $request['content'] === 'Updated content';
     });
 
-    expect($post->content)->toBe('Updated content');
+    expect($result)->toBeTrue();
 });
 
 test('delete sends delete request', function () {
@@ -158,7 +157,13 @@ test('delete sends delete request', function () {
 
 test('paginate returns PaginatedResponse', function () {
     Http::fake([
-        '*/posts*' => Http::response($this->fixture('posts.json')),
+        '*/posts*' => Http::response([
+            'posts' => [
+                ['id' => 101, 'content' => 'Hello world!', 'status' => 'published', 'account_ids' => [1, 2], 'created_at' => '2025-01-15 10:00:00'],
+                ['id' => 102, 'content' => 'Scheduled post', 'status' => 'scheduled', 'account_ids' => [1], 'created_at' => '2025-01-15 09:00:00'],
+            ],
+            'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 15, 'total' => 2],
+        ]),
     ]);
 
     $response = $this->client->posts()->paginate();
@@ -170,7 +175,13 @@ test('paginate returns PaginatedResponse', function () {
 
 test('lazy yields posts one at a time', function () {
     Http::fake([
-        '*/posts*' => Http::response($this->fixture('posts.json')),
+        '*/posts*' => Http::response([
+            'posts' => [
+                ['id' => 101, 'content' => 'Hello world!', 'status' => 'published', 'account_ids' => [1, 2], 'created_at' => '2025-01-15 10:00:00'],
+                ['id' => 102, 'content' => 'Scheduled post', 'status' => 'scheduled', 'account_ids' => [1], 'created_at' => '2025-01-15 09:00:00'],
+            ],
+            'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 15, 'total' => 2],
+        ]),
     ]);
 
     $posts = [];
