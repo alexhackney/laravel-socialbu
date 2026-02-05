@@ -1,0 +1,28 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "name": "My Facebook Page",
+            "type": "facebook",
+            "status": "active",
+            "username": "@myfbpage",
+            "profile_url": "https://facebook.com/myfbpage",
+            "avatar_url": "https://example.com/avatar1.jpg"
+        },
+        {
+            "id": 2,
+            "name": "My Instagram",
+            "type": "instagram",
+            "status": "active",
+            "username": "@myinsta",
+            "profile_url": "https://instagram.com/myinsta",
+            "avatar_url": "https://example.com/avatar2.jpg"
+        }
+    ],
+    "pagination": {
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 15,
+        "total": 2
+    }
+}

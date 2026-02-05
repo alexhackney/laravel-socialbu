@@ -1,0 +1,32 @@
+{
+    "data": [
+        {
+            "id": 101,
+            "content": "Hello world!",
+            "status": "published",
+            "account_ids": [1, 2],
+            "publish_at": null,
+            "attachments": null,
+            "created_at": "2025-01-15 10:00:00",
+            "updated_at": "2025-01-15 10:00:00"
+        },
+        {
+            "id": 102,
+            "content": "Scheduled post",
+            "status": "scheduled",
+            "account_ids": [1],
+            "publish_at": "2025-06-15 14:00:00",
+            "attachments": [
+                {"url": "https://cdn.example.com/image.jpg", "type": "image"}
+            ],
+            "created_at": "2025-01-15 09:00:00",
+            "updated_at": "2025-01-15 09:00:00"
+        }
+    ],
+    "pagination": {
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 15,
+        "total": 2
+    }
+}

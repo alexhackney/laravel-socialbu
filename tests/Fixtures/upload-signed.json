@@ -1,0 +1,6 @@
+{
+    "signed_url": "https://s3.amazonaws.com/bucket/uploads/abc123?signature=xyz",
+    "key": "uploads/abc123.jpg",
+    "url": "https://cdn.socialbu.com/uploads/abc123.jpg",
+    "secure_key": "secure-key-456"
+}
