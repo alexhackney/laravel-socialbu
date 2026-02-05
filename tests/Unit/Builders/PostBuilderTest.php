@@ -209,12 +209,15 @@ test('validation exception includes field errors', function () {
 test('send creates post via API', function () {
     Http::fake([
         '*/posts*' => Http::response([
-            'data' => [
-                'id' => 123,
-                'content' => 'Hello!',
-                'status' => 'scheduled',
-                'account_ids' => [100, 200],
-                'created_at' => '2025-01-15 10:00:00',
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 123,
+                    'content' => 'Hello!',
+                    'status' => 'scheduled',
+                    'account_ids' => [100, 200],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
             ],
         ]),
     ]);
@@ -251,12 +254,15 @@ test('send uploads media before creating post', function () {
             'upload_token' => 'token-456',
         ]),
         '*/posts*' => Http::response([
-            'data' => [
-                'id' => 123,
-                'content' => 'With media!',
-                'status' => 'published',
-                'account_ids' => [100],
-                'created_at' => '2025-01-15 10:00:00',
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 123,
+                    'content' => 'With media!',
+                    'status' => 'published',
+                    'account_ids' => [100],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
             ],
         ]),
     ]);
