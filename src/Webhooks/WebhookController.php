@@ -14,9 +14,15 @@ class WebhookController extends Controller
 {
     /**
      * Handle post status webhook.
+     *
+     * Expects flat payload: {post_id, account_id, status}
      */
     public function handlePost(Request $request): JsonResponse
     {
+        if (! $this->verifySignature($request)) {
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
         $payload = WebhookPayload::fromArray($request->all());
 
         $postId = $payload->getPostId();
@@ -39,15 +45,21 @@ class WebhookController extends Controller
 
     /**
      * Handle account status webhook.
+     *
+     * Expects flat payload: {account_action, account_id, account_type, account_name}
      */
     public function handleAccount(Request $request): JsonResponse
     {
+        if (! $this->verifySignature($request)) {
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
         $payload = WebhookPayload::fromArray($request->all());
 
         $accountId = $payload->getAccountId();
-        $action = $payload->getAction();
-        $accountType = $payload->data['type'] ?? $payload->data['platform'] ?? 'unknown';
-        $accountName = $payload->data['name'] ?? '';
+        $action = $payload->getAccountAction();
+        $accountType = $payload->getAccountType() ?? 'unknown';
+        $accountName = $payload->getAccountName() ?? '';
 
         if ($accountId === null || $action === null) {
             return response()->json(['error' => 'Invalid payload'], 400);
@@ -62,5 +74,27 @@ class WebhookController extends Controller
         ));
 
         return response()->json(['received' => true]);
+    }
+
+    /**
+     * Verify the webhook signature if a secret is configured.
+     */
+    private function verifySignature(Request $request): bool
+    {
+        $secret = config('socialbu.webhooks.secret');
+
+        if ($secret === null || $secret === '') {
+            return true;
+        }
+
+        $signature = $request->header('X-SocialBu-Signature');
+
+        if ($signature === null) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $request->getContent(), $secret);
+
+        return hash_equals($expected, $signature);
     }
 }

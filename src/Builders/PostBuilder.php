@@ -26,6 +26,8 @@ class PostBuilder
 
     private ?string $postbackUrl = null;
 
+    private ?array $options = null;
+
     public function __construct(
         private readonly SocialBuClientInterface $client,
     ) {}
@@ -118,6 +120,16 @@ class PostBuilder
     }
 
     /**
+     * Set platform-specific options (e.g. Reddit title, TikTok privacy).
+     */
+    public function withOptions(array $options): self
+    {
+        $this->options = $options;
+
+        return $this;
+    }
+
+    /**
      * Validate and return the payload without sending.
      *
      * @throws ValidationException
@@ -149,6 +161,7 @@ class PostBuilder
             attachments: $attachments,
             draft: $this->draft,
             postbackUrl: $this->postbackUrl,
+            options: $this->options,
         );
     }
 
@@ -211,7 +224,10 @@ class PostBuilder
     }
 
     /**
-     * Build the payload that would be sent.
+     * Build the payload that would be sent to the API.
+     *
+     * Note: Media files listed in pending_uploads would be uploaded
+     * and replaced with existing_attachments tokens when send() is called.
      */
     private function buildPayload(): array
     {
@@ -219,9 +235,10 @@ class PostBuilder
             'content' => $this->content,
             'accounts' => $this->resolveAccountIds(),
             'publish_at' => $this->publishAt,
-            'media_paths' => $this->mediaPaths ?: null,
+            'pending_uploads' => $this->mediaPaths ?: null,
             'draft' => $this->draft ?: null,
             'postback_url' => $this->postbackUrl,
+            'options' => $this->options,
         ], fn ($value) => $value !== null);
     }
 }

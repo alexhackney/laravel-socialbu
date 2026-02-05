@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Hei\SocialBu\Testing;
 
+use Generator;
 use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
 use Hei\SocialBu\Data\MediaUpload;
+use Hei\SocialBu\Data\PaginatedResponse;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Resources\AccountResource;
 use Hei\SocialBu\Resources\MediaResource;
@@ -350,6 +352,7 @@ class FakePostResource extends PostResource
         ?array $attachments = null,
         bool $draft = false,
         ?string $postbackUrl = null,
+        ?array $options = null,
     ): Post {
         return $this->fake->recordPublish([
             'content' => $content,
@@ -358,7 +361,43 @@ class FakePostResource extends PostResource
             'attachments' => $attachments,
             'draft' => $draft,
             'postback_url' => $postbackUrl,
+            'options' => $options,
         ]);
+    }
+
+    public function update(int $postId, array $data): bool
+    {
+        return true;
+    }
+
+    public function delete(int $postId): bool
+    {
+        return true;
+    }
+
+    public function paginate(?string $type = null, int $page = 1, int $perPage = 15): PaginatedResponse
+    {
+        $posts = $this->fake->getFakePosts();
+
+        return new PaginatedResponse(
+            items: $posts,
+            currentPage: $page,
+            lastPage: 1,
+            perPage: $perPage,
+            total: count($posts),
+        );
+    }
+
+    public function lazy(?string $type = null, int $perPage = 15): Generator
+    {
+        foreach ($this->fake->getFakePosts() as $post) {
+            yield $post;
+        }
+    }
+
+    public function all(?string $type = null, int $perPage = 50): array
+    {
+        return $this->fake->getFakePosts();
     }
 }
 
@@ -385,6 +424,31 @@ class FakeAccountResource extends AccountResource
         }
 
         return Account::fromArray(['id' => $accountId, 'name' => 'Fake Account', 'type' => 'facebook']);
+    }
+
+    public function paginate(?string $type = null, int $page = 1, int $perPage = 15): PaginatedResponse
+    {
+        $accounts = $this->fake->getFakeAccounts();
+
+        return new PaginatedResponse(
+            items: $accounts,
+            currentPage: $page,
+            lastPage: 1,
+            perPage: $perPage,
+            total: count($accounts),
+        );
+    }
+
+    public function lazy(?string $type = null, int $perPage = 15): Generator
+    {
+        foreach ($this->fake->getFakeAccounts() as $account) {
+            yield $account;
+        }
+    }
+
+    public function all(?string $type = null, int $perPage = 50): array
+    {
+        return $this->fake->getFakeAccounts();
     }
 }
 

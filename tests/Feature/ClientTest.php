@@ -183,3 +183,44 @@ test('exceptions include context for debugging', function () {
         expect($context['request']['data'])->toBe(['content' => 'test']);
     }
 });
+
+test('it throws ServerException on 502 errors', function () {
+    Http::fake([
+        '*' => Http::response(['message' => 'Bad Gateway'], 502),
+    ]);
+
+    $this->client->get('/posts');
+})->throws(ServerException::class, 'Bad Gateway');
+
+test('it throws ServerException on 503 errors', function () {
+    Http::fake([
+        '*' => Http::response(['message' => 'Service Unavailable'], 503),
+    ]);
+
+    $this->client->get('/posts');
+})->throws(ServerException::class, 'Service Unavailable');
+
+test('it preserves raw body in non-JSON error responses', function () {
+    Http::fake([
+        '*' => Http::response('Gateway Timeout', 504),
+    ]);
+
+    try {
+        $this->client->get('/posts');
+    } catch (ServerException $e) {
+        expect($e->getMessage())->toContain('Gateway Timeout');
+    }
+});
+
+test('it omits Authorization header when token is null', function () {
+    Http::fake([
+        '*' => Http::response([], 200),
+    ]);
+
+    $client = new SocialBuClient(token: null);
+    $client->get('/accounts');
+
+    Http::assertSent(function ($request) {
+        return ! $request->hasHeader('Authorization');
+    });
+});

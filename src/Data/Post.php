@@ -26,7 +26,7 @@ final readonly class Post
     public static function fromArray(array $data): self
     {
         return new self(
-            id: (int) $data['id'],
+            id: (int) ($data['id'] ?? 0),
             content: $data['content'] ?? '',
             status: $data['status'] ?? 'draft',
             accountIds: self::parseAccountIds($data),

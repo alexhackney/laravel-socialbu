@@ -105,14 +105,25 @@ class MediaResource
                 'key' => $signed['key'],
             ]);
 
+            $uploadToken = $status['upload_token'] ?? '';
+
+            if ($uploadToken === '' || $uploadToken === null) {
+                throw new MediaUploadException(
+                    'Media upload confirmation did not return an upload token. The file may still be processing.',
+                    MediaUploadException::STEP_CONFIRMATION,
+                );
+            }
+
             return new MediaUpload(
-                uploadToken: $status['upload_token'] ?? '',
+                uploadToken: $uploadToken,
                 key: $signed['key'] ?? '',
                 url: $signed['url'] ?? '',
                 secureKey: $signed['secure_key'] ?? '',
                 mimeType: $file->mimeType,
                 name: $file->name,
             );
+        } catch (MediaUploadException $e) {
+            throw $e;
         } catch (SocialBuException $e) {
             throw MediaUploadException::atStep(MediaUploadException::STEP_CONFIRMATION, $e);
         }
@@ -183,28 +194,39 @@ class MediaResource
         $contentType = $headResponse->header('Content-Type') ?? 'application/octet-stream';
         $name = basename(parse_url($url, PHP_URL_PATH) ?: 'file');
 
-        // Create a stream for the file content
-        $response = Http::get($url);
+        // Stream remote file to a temp file to avoid loading into memory
+        $tempFile = tempnam(sys_get_temp_dir(), 'socialbu_');
+
+        $response = Http::withOptions(['sink' => $tempFile])->get($url);
 
         if (! $response->successful()) {
+            @unlink($tempFile);
+
             throw new MediaUploadException(
                 "Cannot download remote file: {$url}",
                 MediaUploadException::STEP_SIGNED_URL,
             );
         }
 
-        $stream = fopen('php://temp', 'r+b');
-        fwrite($stream, $response->body());
-        rewind($stream);
+        $stream = fopen($tempFile, 'rb');
 
-        $size = $contentLength > 0 ? $contentLength : strlen($response->body());
+        if ($stream === false) {
+            @unlink($tempFile);
+
+            throw new MediaUploadException(
+                "Cannot open downloaded file: {$url}",
+                MediaUploadException::STEP_SIGNED_URL,
+            );
+        }
+
+        $size = $contentLength > 0 ? $contentLength : (int) filesize($tempFile);
 
         return new ResolvedFile(
             name: $name,
             mimeType: $contentType,
             size: $size,
             stream: $stream,
-            path: $url,
+            path: $tempFile,
         );
     }
 }

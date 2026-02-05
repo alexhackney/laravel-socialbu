@@ -150,6 +150,26 @@ test('upload throws for non-existent file', function () {
     $this->client->media()->upload('/path/to/nonexistent/file.jpg');
 })->throws(MediaUploadException::class, 'File not found');
 
+test('upload throws when confirmation returns empty upload token', function () {
+    Http::fake([
+        '*/upload_media' => Http::response($this->fixture('upload-signed.json')),
+        's3.amazonaws.com/*' => Http::response('', 200),
+        '*/upload_media/status*' => Http::response([
+            'success' => false,
+            'upload_token' => null,
+        ]),
+    ]);
+
+    try {
+        $this->client->media()->upload($this->tempFile);
+    } catch (MediaUploadException $e) {
+        expect($e->getStep())->toBe(MediaUploadException::STEP_CONFIRMATION);
+        expect($e->getMessage())->toContain('upload token');
+
+        throw $e;
+    }
+})->throws(MediaUploadException::class);
+
 test('upload handles remote URL', function () {
     Http::fake([
         'https://example.com/image.jpg' => Http::response('fake image data', 200, [

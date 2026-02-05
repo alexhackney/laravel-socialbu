@@ -23,7 +23,7 @@ final readonly class Account
     public static function fromArray(array $data): self
     {
         return new self(
-            id: (int) $data['id'],
+            id: (int) ($data['id'] ?? 0),
             name: $data['name'] ?? '',
             type: $data['type'] ?? $data['platform'] ?? 'unknown',
             status: $data['status'] ?? 'active',

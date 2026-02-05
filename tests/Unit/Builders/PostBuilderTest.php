@@ -157,7 +157,7 @@ test('media adds media path', function () {
         ->media('/path/to/image.jpg')
         ->dryRun();
 
-    expect($payload['media_paths'])->toBe(['/path/to/image.jpg']);
+    expect($payload['pending_uploads'])->toBe(['/path/to/image.jpg']);
 });
 
 test('media can be called multiple times', function () {
@@ -169,7 +169,7 @@ test('media can be called multiple times', function () {
         ->media('/path/to/image2.jpg')
         ->dryRun();
 
-    expect($payload['media_paths'])->toBe([
+    expect($payload['pending_uploads'])->toBe([
         '/path/to/image1.jpg',
         '/path/to/image2.jpg',
     ]);
@@ -209,12 +209,15 @@ test('validation exception includes field errors', function () {
 test('send creates post via API', function () {
     Http::fake([
         '*/posts*' => Http::response([
-            'data' => [
-                'id' => 123,
-                'content' => 'Hello!',
-                'status' => 'scheduled',
-                'account_ids' => [100, 200],
-                'created_at' => '2025-01-15 10:00:00',
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 123,
+                    'content' => 'Hello!',
+                    'status' => 'scheduled',
+                    'account_ids' => [100, 200],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
             ],
         ]),
     ]);
@@ -238,47 +241,83 @@ test('send uploads media before creating post', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'socialbu_test_');
     file_put_contents($tempFile, 'fake image');
 
-    Http::fake([
-        '*/upload_media' => Http::response([
-            'signed_url' => 'https://s3.example.com/upload',
-            'key' => 'uploads/test.jpg',
-            'url' => 'https://cdn.example.com/test.jpg',
-            'secure_key' => 'secure-123',
-        ]),
-        's3.example.com/*' => Http::response('', 200),
-        '*/upload_media/status*' => Http::response([
-            'success' => true,
-            'upload_token' => 'token-456',
-        ]),
-        '*/posts*' => Http::response([
-            'data' => [
-                'id' => 123,
-                'content' => 'With media!',
-                'status' => 'published',
-                'account_ids' => [100],
-                'created_at' => '2025-01-15 10:00:00',
-            ],
-        ]),
-    ]);
+    try {
+        Http::fake([
+            '*/upload_media' => Http::response([
+                'signed_url' => 'https://s3.example.com/upload',
+                'key' => 'uploads/test.jpg',
+                'url' => 'https://cdn.example.com/test.jpg',
+                'secure_key' => 'secure-123',
+            ]),
+            's3.example.com/*' => Http::response('', 200),
+            '*/upload_media/status*' => Http::response([
+                'success' => true,
+                'upload_token' => 'token-456',
+            ]),
+            '*/posts*' => Http::response([
+                'success' => true,
+                'posts' => [
+                    [
+                        'id' => 123,
+                        'content' => 'With media!',
+                        'status' => 'published',
+                        'account_ids' => [100],
+                        'created_at' => '2025-01-15 10:00:00',
+                    ],
+                ],
+            ]),
+        ]);
 
-    $this->client->create()
-        ->content('With media!')
-        ->media($tempFile)
-        ->send();
+        $this->client->create()
+            ->content('With media!')
+            ->media($tempFile)
+            ->send();
 
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/posts')) {
-            return true;
-        }
-        if (str_contains($request->url(), '/upload')) {
-            return true;
-        }
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/posts')) {
+                return true;
+            }
+            if (str_contains($request->url(), '/upload')) {
+                return true;
+            }
 
-        return isset($request['existing_attachments'])
-            && $request['existing_attachments'][0]['upload_token'] === 'token-456';
-    });
+            return isset($request['existing_attachments'])
+                && $request['existing_attachments'][0]['upload_token'] === 'token-456';
+        });
+    } finally {
+        @unlink($tempFile);
+    }
+});
 
-    unlink($tempFile);
+test('withOptions sets platform options', function () {
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->withOptions(['title' => 'Reddit Title', 'privacy_status' => 'public'])
+        ->dryRun();
+
+    expect($payload['options'])->toBe(['title' => 'Reddit Title', 'privacy_status' => 'public']);
+});
+
+test('withOptions is chainable', function () {
+    $builder = new PostBuilder($this->client);
+
+    $result = $builder
+        ->content('Test')
+        ->withOptions(['title' => 'Test']);
+
+    expect($result)->toBeInstanceOf(PostBuilder::class);
+});
+
+test('dryRun omits options when not set', function () {
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->dryRun();
+
+    expect($payload)->not->toHaveKey('options');
 });
 
 test('fluent interface is chainable', function () {

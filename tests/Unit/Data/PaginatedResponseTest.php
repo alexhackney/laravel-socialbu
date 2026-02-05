@@ -182,3 +182,31 @@ test('it uses custom items key', function () {
 
     expect($response->items)->toHaveCount(2);
 });
+
+test('it handles top-level camelCase pagination from spec', function () {
+    // This is the actual format the SocialBu API spec describes:
+    // items, currentPage, lastPage, nextPage, total at top level
+    $response = PaginatedResponse::fromArray([
+        'items' => [['id' => 1], ['id' => 2], ['id' => 3]],
+        'currentPage' => 2,
+        'lastPage' => 5,
+        'total' => 25,
+    ]);
+
+    expect($response->items)->toHaveCount(3);
+    expect($response->currentPage)->toBe(2);
+    expect($response->lastPage)->toBe(5);
+    expect($response->total)->toBe(25);
+    expect($response->hasMorePages())->toBeTrue();
+});
+
+test('it falls back to items key when custom key is missing', function () {
+    $response = PaginatedResponse::fromArray([
+        'items' => [['id' => 1]],
+        'currentPage' => 1,
+        'lastPage' => 1,
+        'total' => 1,
+    ], 'posts'); // 'posts' key doesn't exist, should fall back to 'items'
+
+    expect($response->items)->toHaveCount(1);
+});
