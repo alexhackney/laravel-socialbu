@@ -104,6 +104,6 @@ class AccountResource
      */
     public function all(?string $type = null, int $perPage = 50): array
     {
-        return $this->list($type, 1, $perPage);
+        return iterator_to_array($this->lazy($type, $perPage));
     }
 }

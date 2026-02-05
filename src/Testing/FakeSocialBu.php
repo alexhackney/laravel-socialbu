@@ -352,6 +352,7 @@ class FakePostResource extends PostResource
         ?array $attachments = null,
         bool $draft = false,
         ?string $postbackUrl = null,
+        ?array $options = null,
     ): Post {
         return $this->fake->recordPublish([
             'content' => $content,
@@ -360,6 +361,7 @@ class FakePostResource extends PostResource
             'attachments' => $attachments,
             'draft' => $draft,
             'postback_url' => $postbackUrl,
+            'options' => $options,
         ]);
     }
 

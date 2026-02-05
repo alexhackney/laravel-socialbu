@@ -246,6 +246,19 @@ test('fake accounts().paginate() returns PaginatedResponse', function () {
     expect($response->items)->toHaveCount(1);
 });
 
+test('fake records options in published posts', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->create()
+        ->content('Reddit post')
+        ->to(1)
+        ->withOptions(['title' => 'My Title', 'subreddit' => 'laravel'])
+        ->send();
+
+    expect($fake->getPublished())->toHaveCount(1);
+    expect($fake->getPublished()[0]['options'])->toBe(['title' => 'My Title', 'subreddit' => 'laravel']);
+});
+
 test('throwOnUpload throws on next upload', function () {
     $fake = FakeSocialBu::fake();
 

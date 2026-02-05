@@ -289,6 +289,37 @@ test('send uploads media before creating post', function () {
     }
 });
 
+test('withOptions sets platform options', function () {
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->withOptions(['title' => 'Reddit Title', 'privacy_status' => 'public'])
+        ->dryRun();
+
+    expect($payload['options'])->toBe(['title' => 'Reddit Title', 'privacy_status' => 'public']);
+});
+
+test('withOptions is chainable', function () {
+    $builder = new PostBuilder($this->client);
+
+    $result = $builder
+        ->content('Test')
+        ->withOptions(['title' => 'Test']);
+
+    expect($result)->toBeInstanceOf(PostBuilder::class);
+});
+
+test('dryRun omits options when not set', function () {
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->dryRun();
+
+    expect($payload)->not->toHaveKey('options');
+});
+
 test('fluent interface is chainable', function () {
     $builder = new PostBuilder($this->client);
 

@@ -66,6 +66,7 @@ class PostResource
         ?array $attachments = null,
         bool $draft = false,
         ?string $postbackUrl = null,
+        ?array $options = null,
     ): Post {
         $data = array_filter([
             'content' => $content,
@@ -74,6 +75,7 @@ class PostResource
             'existing_attachments' => $attachments,
             'draft' => $draft ?: null,
             'postback_url' => $postbackUrl,
+            'options' => $options,
         ], fn ($value) => $value !== null);
 
         $response = $this->client->post('/posts', $data);
@@ -165,6 +167,6 @@ class PostResource
      */
     public function all(?string $type = null, int $perPage = 50): array
     {
-        return $this->list($type, 1, $perPage);
+        return iterator_to_array($this->lazy($type, $perPage));
     }
 }

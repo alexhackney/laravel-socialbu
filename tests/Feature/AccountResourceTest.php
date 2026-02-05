@@ -112,6 +112,26 @@ test('all returns all accounts', function () {
     expect($accounts)->toHaveCount(2);
 });
 
+test('all fetches all pages', function () {
+    Http::fake([
+        '*/accounts*' => Http::sequence()
+            ->push([
+                'accounts' => [['id' => 1, 'name' => 'Account 1', 'type' => 'facebook', 'status' => 'active']],
+                'pagination' => ['current_page' => 1, 'last_page' => 2, 'per_page' => 1, 'total' => 2],
+            ])
+            ->push([
+                'accounts' => [['id' => 2, 'name' => 'Account 2', 'type' => 'instagram', 'status' => 'active']],
+                'pagination' => ['current_page' => 2, 'last_page' => 2, 'per_page' => 1, 'total' => 2],
+            ]),
+    ]);
+
+    $accounts = $this->client->accounts()->all(perPage: 1);
+
+    expect($accounts)->toHaveCount(2);
+    expect($accounts[0]->id)->toBe(1);
+    expect($accounts[1]->id)->toBe(2);
+});
+
 test('list handles items key from spec', function () {
     Http::fake([
         '*/accounts*' => Http::response([
