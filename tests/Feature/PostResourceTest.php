@@ -274,6 +274,34 @@ test('create works without options', function () {
     });
 });
 
+test('create defaults publish_at to now when not specified', function () {
+    Http::fake([
+        '*/posts*' => Http::response([
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 302,
+                    'content' => 'Immediate post',
+                    'status' => 'published',
+                    'account_ids' => [1],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->client->posts()->create(
+        content: 'Immediate post',
+        accountIds: [1],
+    );
+
+    Http::assertSent(function ($request) {
+        return $request->method() === 'POST'
+            && array_key_exists('publish_at', $request->data())
+            && $request['publish_at'] !== null;
+    });
+});
+
 test('all fetches all pages', function () {
     Http::fake([
         '*/posts*' => Http::sequence()
