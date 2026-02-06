@@ -8,10 +8,12 @@ use Generator;
 use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
+use Hei\SocialBu\Data\Insights\InsightStats;
 use Hei\SocialBu\Data\MediaUpload;
 use Hei\SocialBu\Data\PaginatedResponse;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Resources\AccountResource;
+use Hei\SocialBu\Resources\InsightsResource;
 use Hei\SocialBu\Resources\MediaResource;
 use Hei\SocialBu\Resources\PostResource;
 use PHPUnit\Framework\Assert;
@@ -34,6 +36,8 @@ class FakeSocialBu implements SocialBuClientInterface
 
     /** @var array<Post> */
     private array $fakePosts = [];
+
+    private ?InsightStats $fakeInsightStats = null;
 
     private int $nextPostId = 1;
 
@@ -77,6 +81,18 @@ class FakeSocialBu implements SocialBuClientInterface
             fn ($p) => $p instanceof Post ? $p : Post::fromArray($p),
             $posts
         );
+
+        return $this;
+    }
+
+    /**
+     * Set insight stats to return from the API.
+     */
+    public function withInsightStats(InsightStats|array $stats): self
+    {
+        $this->fakeInsightStats = $stats instanceof InsightStats
+            ? $stats
+            : InsightStats::fromArray($stats);
 
         return $this;
     }
@@ -200,6 +216,11 @@ class FakeSocialBu implements SocialBuClientInterface
         return new FakeMediaResource($this);
     }
 
+    public function insights(): InsightsResource
+    {
+        return new FakeInsightsResource($this);
+    }
+
     public function create(): PostBuilder
     {
         return new PostBuilder($this);
@@ -321,6 +342,14 @@ class FakeSocialBu implements SocialBuClientInterface
     public function getFakePosts(): array
     {
         return $this->fakePosts;
+    }
+
+    /**
+     * @internal
+     */
+    public function getFakeInsightStats(): InsightStats
+    {
+        return $this->fakeInsightStats ?? InsightStats::fromArray([]);
     }
 }
 
@@ -468,5 +497,62 @@ class FakeMediaResource extends MediaResource
     public function upload(string $path): MediaUpload
     {
         return $this->fake->recordUpload($path);
+    }
+}
+
+/**
+ * @internal
+ */
+class FakeInsightsResource extends InsightsResource
+{
+    public function __construct(
+        private readonly FakeSocialBu $fake,
+    ) {}
+
+    public function stats(): InsightStats
+    {
+        return $this->fake->getFakeInsightStats();
+    }
+
+    public function postCounts(
+        string|\DateTimeInterface $start,
+        string|\DateTimeInterface $end,
+        ?array $accounts = null,
+        ?string $postType = null,
+        ?int $team = null,
+    ): array {
+        return [];
+    }
+
+    public function postMetrics(
+        string|\DateTimeInterface $start,
+        string|\DateTimeInterface $end,
+        array $metrics,
+        ?string $postType = null,
+        ?array $accounts = null,
+        ?int $team = null,
+    ): array {
+        return [];
+    }
+
+    public function topPosts(
+        string|\DateTimeInterface $start,
+        string|\DateTimeInterface $end,
+        array $metrics,
+        ?array $accounts = null,
+        ?int $team = null,
+    ): array {
+        return [];
+    }
+
+    public function accountMetrics(
+        string|\DateTimeInterface $start,
+        string|\DateTimeInterface $end,
+        array $metrics,
+        ?array $accounts = null,
+        ?bool $calculateGrowth = null,
+        ?int $team = null,
+    ): array {
+        return [];
     }
 }

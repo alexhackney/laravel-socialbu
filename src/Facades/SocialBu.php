@@ -8,6 +8,7 @@ use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Resources\AccountResource;
+use Hei\SocialBu\Resources\InsightsResource;
 use Hei\SocialBu\Resources\MediaResource;
 use Hei\SocialBu\Resources\PostResource;
 use Illuminate\Support\Facades\Facade;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static PostResource posts()
  * @method static AccountResource accounts()
  * @method static MediaResource media()
+ * @method static InsightsResource insights()
  * @method static PostBuilder create()
  * @method static Post publish(string $content, ?string $mediaPath = null)
  * @method static bool isConfigured()

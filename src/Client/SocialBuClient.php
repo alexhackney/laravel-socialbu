@@ -13,6 +13,7 @@ use Hei\SocialBu\Exceptions\ServerException;
 use Hei\SocialBu\Exceptions\SocialBuException;
 use Hei\SocialBu\Exceptions\ValidationException;
 use Hei\SocialBu\Resources\AccountResource;
+use Hei\SocialBu\Resources\InsightsResource;
 use Hei\SocialBu\Resources\MediaResource;
 use Hei\SocialBu\Resources\PostResource;
 use Illuminate\Http\Client\PendingRequest;
@@ -26,6 +27,8 @@ class SocialBuClient implements SocialBuClientInterface
     private ?AccountResource $accountResource = null;
 
     private ?MediaResource $mediaResource = null;
+
+    private ?InsightsResource $insightsResource = null;
 
     /**
      * @param  array<int>  $accountIds
@@ -51,6 +54,11 @@ class SocialBuClient implements SocialBuClientInterface
     public function media(): MediaResource
     {
         return $this->mediaResource ??= new MediaResource($this);
+    }
+
+    public function insights(): InsightsResource
+    {
+        return $this->insightsResource ??= new InsightsResource($this);
     }
 
     public function create(): PostBuilder

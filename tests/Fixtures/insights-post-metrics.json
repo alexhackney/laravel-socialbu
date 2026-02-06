@@ -1,0 +1,15 @@
+{
+    "success": true,
+    "data": {
+        "items": {
+            "likes": [
+                {"date": "2026-01-01", "value": 10},
+                {"date": "2026-01-02", "value": 25}
+            ],
+            "comments": [
+                {"date": "2026-01-01", "value": 2},
+                {"date": "2026-01-02", "value": 8}
+            ]
+        }
+    }
+}

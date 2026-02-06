@@ -1,0 +1,38 @@
+{
+    "data": [
+        {
+            "id": 501,
+            "content": "Top performing post!",
+            "account_id": 83462,
+            "account_type": "instagram",
+            "type": "image",
+            "attachments": [
+                {"url": "https://example.com/image1.jpg"}
+            ],
+            "publish_at": null,
+            "published_at": "2025-06-15 10:00:00",
+            "published": true,
+            "permalink": "https://instagram.com/p/abc123",
+            "insights": [
+                {"type": "likes", "value": 142},
+                {"type": "comments", "value": 23}
+            ]
+        },
+        {
+            "id": 502,
+            "content": "Second best post",
+            "account_id": 83462,
+            "account_type": "instagram",
+            "type": "text",
+            "attachments": null,
+            "publish_at": null,
+            "published_at": "2025-06-20 14:30:00",
+            "published": true,
+            "permalink": "https://instagram.com/p/def456",
+            "insights": [
+                {"type": "likes", "value": 98},
+                {"type": "comments", "value": 15}
+            ]
+        }
+    ]
+}

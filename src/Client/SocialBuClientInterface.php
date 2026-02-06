@@ -7,6 +7,7 @@ namespace Hei\SocialBu\Client;
 use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Resources\AccountResource;
+use Hei\SocialBu\Resources\InsightsResource;
 use Hei\SocialBu\Resources\MediaResource;
 use Hei\SocialBu\Resources\PostResource;
 
@@ -26,6 +27,11 @@ interface SocialBuClientInterface
      * Get the media resource.
      */
     public function media(): MediaResource;
+
+    /**
+     * Get the insights resource.
+     */
+    public function insights(): InsightsResource;
 
     /**
      * Create a new post builder.

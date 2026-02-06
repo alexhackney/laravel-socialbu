@@ -1,0 +1,17 @@
+{
+    "data": [
+        {
+            "account_id": 83462,
+            "metrics": {
+                "followers": [
+                    {"date": "2025-01-01", "value": 1000},
+                    {"date": "2025-02-01", "value": 1050}
+                ],
+                "total_views": [
+                    {"date": "2025-01-01", "value": 5000},
+                    {"date": "2025-02-01", "value": 6200}
+                ]
+            }
+        }
+    ]
+}
