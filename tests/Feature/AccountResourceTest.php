@@ -26,7 +26,7 @@ test('list returns array of accounts', function () {
     expect($accounts[0])->toBeInstanceOf(Account::class);
     expect($accounts[0]->id)->toBe(1);
     expect($accounts[0]->name)->toBe('My Facebook Page');
-    expect($accounts[0]->type)->toBe('facebook');
+    expect($accounts[0]->type)->toBe('facebook.page');
 });
 
 test('list passes query parameters', function () {

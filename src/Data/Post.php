@@ -28,7 +28,7 @@ final readonly class Post
         return new self(
             id: (int) ($data['id'] ?? 0),
             content: $data['content'] ?? '',
-            status: $data['status'] ?? 'draft',
+            status: $data['status'] ?? self::deriveStatus($data),
             accountIds: self::parseAccountIds($data),
             publishAt: isset($data['publish_at'])
                 ? CarbonImmutable::parse($data['publish_at'])
@@ -71,12 +71,40 @@ final readonly class Post
     }
 
     /**
+     * Derive a status string from boolean flags when no `status` field is present.
+     */
+    private static function deriveStatus(array $data): string
+    {
+        if (! empty($data['draft'])) {
+            return 'draft';
+        }
+
+        if (! empty($data['published'])) {
+            return 'published';
+        }
+
+        if (isset($data['approved']) && $data['approved'] === false) {
+            return 'awaiting_approval';
+        }
+
+        if (isset($data['publish_at'])) {
+            return 'scheduled';
+        }
+
+        return 'draft';
+    }
+
+    /**
      * @return array<int>
      */
     private static function parseAccountIds(array $data): array
     {
         if (isset($data['account_ids'])) {
             return array_map('intval', $data['account_ids']);
+        }
+
+        if (isset($data['account_id'])) {
+            return [(int) $data['account_id']];
         }
 
         if (isset($data['accounts'])) {
