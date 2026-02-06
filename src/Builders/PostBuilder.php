@@ -7,6 +7,7 @@ namespace Hei\SocialBu\Builders;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Hei\SocialBu\Client\SocialBuClientInterface;
+use Hei\SocialBu\Data\Account;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Exceptions\ValidationException;
 
@@ -19,6 +20,9 @@ class PostBuilder
 
     /** @var array<int> */
     private array $accountIds = [];
+
+    /** @var array<Account> */
+    private array $accounts = [];
 
     private ?string $publishAt = null;
 
@@ -70,6 +74,23 @@ class PostBuilder
             } else {
                 $this->accountIds[] = $id;
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set target accounts with pre-fetched Account objects.
+     *
+     * When accounts are provided this way, send() will use them for
+     * capability validation without making additional API calls.
+     * Account IDs are also derived from the objects automatically.
+     */
+    public function toAccounts(Account ...$accounts): self
+    {
+        foreach ($accounts as $account) {
+            $this->accounts[$account->id] = $account;
+            $this->accountIds[] = $account->id;
         }
 
         return $this;
@@ -149,6 +170,7 @@ class PostBuilder
     public function send(): Post
     {
         $this->validate();
+        $this->validateAccountCapabilities();
 
         // Upload media if any
         $attachments = $this->uploadMedia();
@@ -185,6 +207,43 @@ class PostBuilder
 
         if (! empty($errors)) {
             throw new ValidationException('Validation failed.', $errors);
+        }
+    }
+
+    /**
+     * Validate content and media against each target account's capabilities.
+     *
+     * @throws ValidationException
+     */
+    private function validateAccountCapabilities(): void
+    {
+        $accountIds = $this->resolveAccountIds();
+        $errors = [];
+
+        foreach ($accountIds as $accountId) {
+            $account = $this->accounts[$accountId] ?? $this->client->accounts()->get($accountId);
+
+            // Check content length
+            if ($account->postMaxLength !== null) {
+                $length = mb_strlen($this->content);
+                if ($length > $account->postMaxLength) {
+                    $errors['content'][] = "Content ({$length} chars) exceeds limit for {$account->name} (max {$account->postMaxLength}).";
+                }
+            }
+
+            // Check media required
+            if ($account->requiresMedia() && empty($this->mediaPaths)) {
+                $errors['media'][] = "{$account->name} requires at least one media attachment.";
+            }
+
+            // Check max attachments
+            if ($account->maxAttachments !== null && count($this->mediaPaths) > $account->maxAttachments) {
+                $errors['attachments'][] = "Too many attachments for {$account->name} (max {$account->maxAttachments}, got ".count($this->mediaPaths).').';
+            }
+        }
+
+        if (! empty($errors)) {
+            throw new ValidationException('Account capability validation failed.', $errors);
         }
     }
 

@@ -6,6 +6,7 @@ use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Exceptions\SocialBuException;
+use Hei\SocialBu\Exceptions\ValidationException;
 use Hei\SocialBu\Testing\FakeSocialBu;
 
 test('fake binds itself to container', function () {
@@ -282,4 +283,49 @@ test('throwOnUpload only affects next upload', function () {
     $upload = $fake->media()->upload('/path/2.jpg');
 
     expect($upload->uploadToken)->not->toBeEmpty();
+});
+
+test('getAccountIds returns fake account ids when accounts are set', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->withAccounts([
+        ['id' => 10, 'name' => 'Account A', 'type' => 'facebook'],
+        ['id' => 20, 'name' => 'Account B', 'type' => 'instagram'],
+    ]);
+
+    expect($fake->getAccountIds())->toBe([10, 20]);
+});
+
+test('getAccountIds returns defaults when no accounts set', function () {
+    $fake = FakeSocialBu::fake();
+
+    expect($fake->getAccountIds())->toBe([1, 2, 3]);
+});
+
+test('fake validates account capabilities on send', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->withAccounts([
+        Account::fromArray([
+            'id' => 10,
+            'name' => 'My Instagram',
+            'type' => 'instagram',
+            'status' => 'active',
+            'post_maxlength' => 20,
+            'post_media_required' => true,
+        ]),
+    ]);
+
+    try {
+        $fake->create()
+            ->content('This content is definitely way too long for the limit')
+            ->to(10)
+            ->send();
+        test()->fail('Expected ValidationException was not thrown.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('content');
+        expect($e->errors()['content'][0])->toContain('My Instagram');
+        expect($e->errors())->toHaveKey('media');
+        expect($e->errors()['media'][0])->toContain('requires at least one media');
+    }
 });

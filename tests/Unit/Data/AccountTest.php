@@ -137,4 +137,84 @@ test('it handles missing optional fields gracefully', function () {
     expect($account->profileUrl)->toBeNull();
     expect($account->avatarUrl)->toBeNull();
     expect($account->extraData)->toBeNull();
+    expect($account->postMaxLength)->toBeNull();
+    expect($account->maxAttachments)->toBeNull();
+    expect($account->attachmentTypes)->toBeNull();
+    expect($account->postMediaRequired)->toBeNull();
+});
+
+test('it parses capability fields from API response', function () {
+    $account = Account::fromArray([
+        'id' => 1,
+        'name' => 'My Instagram',
+        'type' => 'instagram',
+        'status' => 'active',
+        'post_maxlength' => 2200,
+        'max_attachments' => 10,
+        'attachment_types' => ['jpg', 'png', 'mp4'],
+        'post_media_required' => true,
+    ]);
+
+    expect($account->postMaxLength)->toBe(2200);
+    expect($account->maxAttachments)->toBe(10);
+    expect($account->attachmentTypes)->toBe(['jpg', 'png', 'mp4']);
+    expect($account->postMediaRequired)->toBeTrue();
+});
+
+test('capability fields are included in toArray', function () {
+    $account = Account::fromArray([
+        'id' => 1,
+        'name' => 'Test',
+        'type' => 'instagram',
+        'post_maxlength' => 2200,
+        'max_attachments' => 10,
+        'post_media_required' => true,
+    ]);
+
+    $array = $account->toArray();
+
+    expect($array['post_maxlength'])->toBe(2200);
+    expect($array['max_attachments'])->toBe(10);
+    expect($array['post_media_required'])->toBeTrue();
+});
+
+test('requiresMedia uses postMediaRequired field when available', function () {
+    // Facebook with postMediaRequired=true overrides type-based check
+    $account = Account::fromArray([
+        'id' => 1,
+        'name' => 'Special Facebook',
+        'type' => 'facebook',
+        'post_media_required' => true,
+    ]);
+
+    expect($account->requiresMedia())->toBeTrue();
+
+    // Instagram with postMediaRequired=false overrides type-based check
+    $account = Account::fromArray([
+        'id' => 2,
+        'name' => 'Text Instagram',
+        'type' => 'instagram',
+        'post_media_required' => false,
+    ]);
+
+    expect($account->requiresMedia())->toBeFalse();
+});
+
+test('requiresMedia falls back to type check when field is null', function () {
+    $instagram = Account::fromArray([
+        'id' => 1,
+        'name' => 'Instagram',
+        'type' => 'instagram',
+    ]);
+
+    $facebook = Account::fromArray([
+        'id' => 2,
+        'name' => 'Facebook',
+        'type' => 'facebook',
+    ]);
+
+    expect($instagram->postMediaRequired)->toBeNull();
+    expect($instagram->requiresMedia())->toBeTrue();
+    expect($facebook->postMediaRequired)->toBeNull();
+    expect($facebook->requiresMedia())->toBeFalse();
 });

@@ -8,6 +8,7 @@ final readonly class Account
 {
     /**
      * @param  array<string, mixed>|null  $extraData
+     * @param  array<string>|null  $attachmentTypes
      */
     public function __construct(
         public int $id,
@@ -18,6 +19,10 @@ final readonly class Account
         public ?string $profileUrl = null,
         public ?string $avatarUrl = null,
         public ?array $extraData = null,
+        public ?int $postMaxLength = null,
+        public ?int $maxAttachments = null,
+        public ?array $attachmentTypes = null,
+        public ?bool $postMediaRequired = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -31,6 +36,10 @@ final readonly class Account
             profileUrl: $data['profile_url'] ?? $data['profileUrl'] ?? null,
             avatarUrl: $data['avatar_url'] ?? $data['avatarUrl'] ?? $data['avatar'] ?? $data['image'] ?? null,
             extraData: $data['extra_data'] ?? $data['extraData'] ?? null,
+            postMaxLength: isset($data['post_maxlength']) ? (int) $data['post_maxlength'] : null,
+            maxAttachments: isset($data['max_attachments']) ? (int) $data['max_attachments'] : null,
+            attachmentTypes: $data['attachment_types'] ?? null,
+            postMediaRequired: isset($data['post_media_required']) ? (bool) $data['post_media_required'] : null,
         );
     }
 
@@ -45,6 +54,10 @@ final readonly class Account
             'profile_url' => $this->profileUrl,
             'avatar_url' => $this->avatarUrl,
             'extra_data' => $this->extraData,
+            'post_maxlength' => $this->postMaxLength,
+            'max_attachments' => $this->maxAttachments,
+            'attachment_types' => $this->attachmentTypes,
+            'post_media_required' => $this->postMediaRequired,
         ], fn ($value) => $value !== null);
     }
 
@@ -87,6 +100,10 @@ final readonly class Account
 
     public function requiresMedia(): bool
     {
+        if ($this->postMediaRequired !== null) {
+            return $this->postMediaRequired;
+        }
+
         return $this->isInstagram() || $this->isTikTok() || $this->isPinterest();
     }
 }
