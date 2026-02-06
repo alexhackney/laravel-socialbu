@@ -73,7 +73,7 @@ class PostResource
         $data = array_filter([
             'content' => $content,
             'accounts' => $accountIds,
-            'publish_at' => $publishAt,
+            'publish_at' => $publishAt ?? now()->toDateTimeString(),
             'existing_attachments' => $attachments,
             'draft' => $draft ?: null,
             'postback_url' => $postbackUrl,
