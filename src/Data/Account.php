@@ -26,10 +26,10 @@ final readonly class Account
             id: (int) ($data['id'] ?? 0),
             name: $data['name'] ?? '',
             type: $data['type'] ?? $data['platform'] ?? 'unknown',
-            status: $data['status'] ?? 'active',
+            status: $data['status'] ?? (isset($data['active']) ? ($data['active'] ? 'active' : 'inactive') : 'active'),
             username: $data['username'] ?? null,
             profileUrl: $data['profile_url'] ?? $data['profileUrl'] ?? null,
-            avatarUrl: $data['avatar_url'] ?? $data['avatarUrl'] ?? $data['avatar'] ?? null,
+            avatarUrl: $data['avatar_url'] ?? $data['avatarUrl'] ?? $data['avatar'] ?? $data['image'] ?? null,
             extraData: $data['extra_data'] ?? $data['extraData'] ?? null,
         );
     }
@@ -55,31 +55,38 @@ final readonly class Account
 
     public function isFacebook(): bool
     {
-        return $this->type === 'facebook';
+        return $this->type === 'facebook' || str_starts_with($this->type, 'facebook.');
     }
 
     public function isInstagram(): bool
     {
-        return $this->type === 'instagram';
+        return $this->type === 'instagram' || str_starts_with($this->type, 'instagram.');
     }
 
     public function isTwitter(): bool
     {
-        return $this->type === 'twitter' || $this->type === 'x';
+        return $this->type === 'twitter' || $this->type === 'x'
+            || str_starts_with($this->type, 'twitter.')
+            || str_starts_with($this->type, 'x.');
     }
 
     public function isLinkedIn(): bool
     {
-        return $this->type === 'linkedin';
+        return $this->type === 'linkedin' || str_starts_with($this->type, 'linkedin.');
     }
 
     public function isTikTok(): bool
     {
-        return $this->type === 'tiktok';
+        return $this->type === 'tiktok' || str_starts_with($this->type, 'tiktok.');
+    }
+
+    public function isPinterest(): bool
+    {
+        return $this->type === 'pinterest' || str_starts_with($this->type, 'pinterest.');
     }
 
     public function requiresMedia(): bool
     {
-        return in_array($this->type, ['instagram', 'tiktok', 'pinterest'], true);
+        return $this->isInstagram() || $this->isTikTok() || $this->isPinterest();
     }
 }

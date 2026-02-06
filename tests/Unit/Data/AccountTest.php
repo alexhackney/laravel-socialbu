@@ -73,6 +73,26 @@ test('isActive returns false when status is not active', function () {
     expect($account->isActive())->toBeFalse();
 });
 
+test('isActive maps active bool to status', function () {
+    $active = Account::fromArray(['id' => 1, 'name' => 'Test', 'active' => true]);
+    $inactive = Account::fromArray(['id' => 1, 'name' => 'Test', 'active' => false]);
+
+    expect($active->isActive())->toBeTrue();
+    expect($active->status)->toBe('active');
+    expect($inactive->isActive())->toBeFalse();
+    expect($inactive->status)->toBe('inactive');
+});
+
+test('it maps image field to avatarUrl', function () {
+    $account = Account::fromArray([
+        'id' => 1,
+        'name' => 'Test',
+        'image' => 'https://example.com/avatar.jpg',
+    ]);
+
+    expect($account->avatarUrl)->toBe('https://example.com/avatar.jpg');
+});
+
 test('platform type helpers work correctly', function () {
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'facebook'])->isFacebook())->toBeTrue();
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'instagram'])->isInstagram())->toBeTrue();
@@ -82,15 +102,26 @@ test('platform type helpers work correctly', function () {
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'tiktok'])->isTikTok())->toBeTrue();
 });
 
+test('platform type helpers handle dotted types from real API', function () {
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'twitter.profile'])->isTwitter())->toBeTrue();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'facebook.page'])->isFacebook())->toBeTrue();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'instagram.business'])->isInstagram())->toBeTrue();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'linkedin.page'])->isLinkedIn())->toBeTrue();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'tiktok.business'])->isTikTok())->toBeTrue();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'pinterest.board'])->isPinterest())->toBeTrue();
+});
+
 test('requiresMedia returns true for media-required platforms', function () {
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'instagram'])->requiresMedia())->toBeTrue();
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'tiktok'])->requiresMedia())->toBeTrue();
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'pinterest'])->requiresMedia())->toBeTrue();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'instagram.business'])->requiresMedia())->toBeTrue();
 });
 
 test('requiresMedia returns false for text-capable platforms', function () {
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'facebook'])->requiresMedia())->toBeFalse();
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'twitter'])->requiresMedia())->toBeFalse();
+    expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'twitter.profile'])->requiresMedia())->toBeFalse();
     expect(Account::fromArray(['id' => 1, 'name' => 'T', 'type' => 'linkedin'])->requiresMedia())->toBeFalse();
 });
 

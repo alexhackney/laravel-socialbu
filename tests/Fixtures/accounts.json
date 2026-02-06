@@ -1,22 +1,26 @@
-{
-    "accounts": [
-        {
-            "id": 1,
-            "name": "My Facebook Page",
-            "type": "facebook",
-            "status": "active",
-            "username": "@myfbpage",
-            "profile_url": "https://facebook.com/myfbpage",
-            "avatar_url": "https://example.com/avatar1.jpg"
-        },
-        {
-            "id": 2,
-            "name": "My Instagram",
-            "type": "instagram",
-            "status": "active",
-            "username": "@myinsta",
-            "profile_url": "https://instagram.com/myinsta",
-            "avatar_url": "https://example.com/avatar2.jpg"
-        }
-    ]
-}
+[
+    {
+        "id": 1,
+        "name": "My Facebook Page",
+        "type": "facebook.page",
+        "_type": "Facebook Page",
+        "active": true,
+        "image": "https://example.com/avatar1.jpg",
+        "post_maxlength": 63206,
+        "attachment_types": ["jpg", "png", "gif", "mp4"],
+        "max_attachments": 10,
+        "post_media_required": false
+    },
+    {
+        "id": 2,
+        "name": "My Instagram",
+        "type": "instagram.business",
+        "_type": "Instagram Business",
+        "active": true,
+        "image": "https://example.com/avatar2.jpg",
+        "post_maxlength": 2200,
+        "attachment_types": ["jpg", "png", "mp4"],
+        "max_attachments": 10,
+        "post_media_required": true
+    }
+]

@@ -174,6 +174,20 @@ test('map transforms items through callback', function () {
     expect($ids)->toBe([1, 2, 3]);
 });
 
+test('it handles plain array response', function () {
+    $response = PaginatedResponse::fromArray([
+        ['id' => 1, 'name' => 'Item 1'],
+        ['id' => 2, 'name' => 'Item 2'],
+        ['id' => 3, 'name' => 'Item 3'],
+    ]);
+
+    expect($response->items)->toHaveCount(3);
+    expect($response->currentPage)->toBe(1);
+    expect($response->lastPage)->toBe(1);
+    expect($response->total)->toBe(3);
+    expect($response->hasMorePages())->toBeFalse();
+});
+
 test('it uses custom items key', function () {
     $response = PaginatedResponse::fromArray([
         'posts' => [['id' => 1], ['id' => 2]],

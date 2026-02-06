@@ -21,6 +21,17 @@ final readonly class PaginatedResponse
 
     public static function fromArray(array $data, string $itemsKey = 'data'): self
     {
+        // Handle plain array response (no wrapper object)
+        if (array_is_list($data)) {
+            return new self(
+                items: $data,
+                currentPage: 1,
+                lastPage: 1,
+                perPage: count($data),
+                total: count($data),
+            );
+        }
+
         $pagination = $data['pagination'] ?? $data['meta'] ?? $data;
 
         return new self(

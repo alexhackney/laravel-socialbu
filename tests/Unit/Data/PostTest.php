@@ -101,6 +101,76 @@ test('isDraft returns true when status is draft', function () {
     expect($post->isPublished())->toBeFalse();
 });
 
+test('it parses singular account_id from real API', function () {
+    $post = Post::fromArray([
+        'id' => 1,
+        'account_id' => 172052,
+        'created_at' => '2025-01-01 12:00:00',
+    ]);
+
+    expect($post->accountIds)->toBe([172052]);
+});
+
+test('it derives published status from boolean flags', function () {
+    $post = Post::fromArray([
+        'id' => 1,
+        'published' => true,
+        'draft' => false,
+        'created_at' => '2025-01-01 12:00:00',
+    ]);
+
+    expect($post->status)->toBe('published');
+    expect($post->isPublished())->toBeTrue();
+});
+
+test('it derives draft status from boolean flags', function () {
+    $post = Post::fromArray([
+        'id' => 1,
+        'published' => false,
+        'draft' => true,
+        'created_at' => '2025-01-01 12:00:00',
+    ]);
+
+    expect($post->status)->toBe('draft');
+    expect($post->isDraft())->toBeTrue();
+});
+
+test('it derives scheduled status from publish_at when not published', function () {
+    $post = Post::fromArray([
+        'id' => 1,
+        'published' => false,
+        'draft' => false,
+        'publish_at' => '2099-06-15 14:00:00',
+        'created_at' => '2025-01-01 12:00:00',
+    ]);
+
+    expect($post->status)->toBe('scheduled');
+});
+
+test('it derives awaiting_approval status from approved flag', function () {
+    $post = Post::fromArray([
+        'id' => 1,
+        'published' => false,
+        'draft' => false,
+        'approved' => false,
+        'created_at' => '2025-01-01 12:00:00',
+    ]);
+
+    expect($post->status)->toBe('awaiting_approval');
+});
+
+test('explicit status field takes precedence over boolean flags', function () {
+    $post = Post::fromArray([
+        'id' => 1,
+        'status' => 'published',
+        'published' => false,
+        'draft' => true,
+        'created_at' => '2025-01-01 12:00:00',
+    ]);
+
+    expect($post->status)->toBe('published');
+});
+
 test('it handles missing optional fields gracefully', function () {
     $post = Post::fromArray([
         'id' => 1,
