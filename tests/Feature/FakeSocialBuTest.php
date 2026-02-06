@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
+use Hei\SocialBu\Data\Insights\InsightStats;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Exceptions\SocialBuException;
 use Hei\SocialBu\Exceptions\ValidationException;
+use Hei\SocialBu\Resources\InsightsResource;
 use Hei\SocialBu\Testing\FakeSocialBu;
 
 test('fake binds itself to container', function () {
@@ -328,4 +330,46 @@ test('fake validates account capabilities on send', function () {
         expect($e->errors())->toHaveKey('media');
         expect($e->errors()['media'][0])->toContain('requires at least one media');
     }
+});
+
+test('fake insights returns InsightsResource', function () {
+    $fake = FakeSocialBu::fake();
+
+    expect($fake->insights())->toBeInstanceOf(InsightsResource::class);
+});
+
+test('fake insights stats returns default stats', function () {
+    $fake = FakeSocialBu::fake();
+
+    $stats = $fake->insights()->stats();
+
+    expect($stats)->toBeInstanceOf(InsightStats::class);
+    expect($stats->unreadFeeds)->toBe(0);
+    expect($stats->userFailedPosts)->toBe(0);
+    expect($stats->hasIssues())->toBeFalse();
+});
+
+test('withInsightStats sets fake stats', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->withInsightStats([
+        'unreadFeeds' => 5,
+        'userFailedPosts' => 2,
+        'inactiveAccounts' => 1,
+    ]);
+
+    $stats = $fake->insights()->stats();
+
+    expect($stats->unreadFeeds)->toBe(5);
+    expect($stats->userFailedPosts)->toBe(2);
+    expect($stats->inactiveAccounts)->toBe(1);
+    expect($stats->hasIssues())->toBeTrue();
+});
+
+test('fake insights postCounts returns empty array', function () {
+    $fake = FakeSocialBu::fake();
+
+    $counts = $fake->insights()->postCounts('2026-01-01', '2026-02-06');
+
+    expect($counts)->toBe([]);
 });
