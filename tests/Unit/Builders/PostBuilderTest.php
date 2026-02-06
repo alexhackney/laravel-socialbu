@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Client\SocialBuClient;
+use Hei\SocialBu\Data\Account;
 use Hei\SocialBu\Exceptions\ValidationException;
 use Illuminate\Support\Facades\Http;
 
@@ -208,6 +209,12 @@ test('validation exception includes field errors', function () {
 
 test('send creates post via API', function () {
     Http::fake([
+        '*/accounts/*' => Http::response([
+            'id' => 100,
+            'name' => 'Test Account',
+            'type' => 'facebook',
+            'status' => 'active',
+        ]),
         '*/posts*' => Http::response([
             'success' => true,
             'posts' => [
@@ -243,6 +250,12 @@ test('send uploads media before creating post', function () {
 
     try {
         Http::fake([
+            '*/accounts/*' => Http::response([
+                'id' => 100,
+                'name' => 'Test Account',
+                'type' => 'facebook',
+                'status' => 'active',
+            ]),
             '*/upload_media' => Http::response([
                 'signed_url' => 'https://s3.example.com/upload',
                 'key' => 'uploads/test.jpg',
@@ -332,4 +345,275 @@ test('fluent interface is chainable', function () {
         ->withPostbackUrl('https://example.com/hook');
 
     expect($result)->toBeInstanceOf(PostBuilder::class);
+});
+
+test('send validates content length against account limits', function () {
+    Http::fake([
+        '*/accounts/100' => Http::response([
+            'id' => 100,
+            'name' => 'My Instagram',
+            'type' => 'instagram',
+            'status' => 'active',
+            'post_maxlength' => 20,
+            'post_media_required' => false,
+        ]),
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    $builder
+        ->content('This content is way too long for the account limit')
+        ->to(100)
+        ->send();
+})->throws(ValidationException::class, 'Account capability validation failed.');
+
+test('send validates content length error message includes details', function () {
+    Http::fake([
+        '*/accounts/100' => Http::response([
+            'id' => 100,
+            'name' => 'My Instagram',
+            'type' => 'instagram',
+            'status' => 'active',
+            'post_maxlength' => 20,
+            'post_media_required' => false,
+        ]),
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    try {
+        $builder
+            ->content('This content is way too long for the limit')
+            ->to(100)
+            ->send();
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('content');
+        expect($e->errors()['content'][0])->toContain('My Instagram');
+        expect($e->errors()['content'][0])->toContain('max 20');
+    }
+});
+
+test('send validates media required for accounts', function () {
+    Http::fake([
+        '*/accounts/100' => Http::response([
+            'id' => 100,
+            'name' => 'My Instagram',
+            'type' => 'instagram',
+            'status' => 'active',
+            'post_media_required' => true,
+        ]),
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    try {
+        $builder
+            ->content('No media attached')
+            ->to(100)
+            ->send();
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('media');
+        expect($e->errors()['media'][0])->toContain('My Instagram');
+        expect($e->errors()['media'][0])->toContain('requires at least one media');
+    }
+});
+
+test('send validates max attachments', function () {
+    Http::fake([
+        '*/accounts/100' => Http::response([
+            'id' => 100,
+            'name' => 'My Facebook Page',
+            'type' => 'facebook',
+            'status' => 'active',
+            'max_attachments' => 2,
+        ]),
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    try {
+        $builder
+            ->content('Too many files')
+            ->to(100)
+            ->media('/path/1.jpg')
+            ->media('/path/2.jpg')
+            ->media('/path/3.jpg')
+            ->send();
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('attachments');
+        expect($e->errors()['attachments'][0])->toContain('My Facebook Page');
+        expect($e->errors()['attachments'][0])->toContain('max 2');
+        expect($e->errors()['attachments'][0])->toContain('got 3');
+    }
+});
+
+test('send passes validation when within limits', function () {
+    Http::fake([
+        '*/accounts/100' => Http::response([
+            'id' => 100,
+            'name' => 'My Facebook',
+            'type' => 'facebook',
+            'status' => 'active',
+            'post_maxlength' => 5000,
+            'max_attachments' => 10,
+        ]),
+        '*/posts*' => Http::response([
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 1,
+                    'content' => 'Short post',
+                    'status' => 'published',
+                    'account_ids' => [100],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
+            ],
+        ]),
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    $post = $builder
+        ->content('Short post')
+        ->to(100)
+        ->send();
+
+    expect($post->id)->toBe(1);
+});
+
+test('send skips capability validation when account has no limits', function () {
+    Http::fake([
+        '*/accounts/100' => Http::response([
+            'id' => 100,
+            'name' => 'Basic Account',
+            'type' => 'facebook',
+            'status' => 'active',
+        ]),
+        '*/posts*' => Http::response([
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 1,
+                    'content' => str_repeat('x', 10000),
+                    'status' => 'published',
+                    'account_ids' => [100],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
+            ],
+        ]),
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    $post = $builder
+        ->content(str_repeat('x', 10000))
+        ->to(100)
+        ->send();
+
+    expect($post->id)->toBe(1);
+});
+
+test('dryRun does not fetch accounts', function () {
+    Http::fake();
+
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->to(100)
+        ->dryRun();
+
+    Http::assertNothingSent();
+    expect($payload['content'])->toBe('Test');
+});
+
+test('toAccounts sets account ids from Account objects', function () {
+    $account = Account::fromArray([
+        'id' => 500,
+        'name' => 'From DB',
+        'type' => 'facebook',
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->toAccounts($account)
+        ->dryRun();
+
+    expect($payload['accounts'])->toBe([500]);
+});
+
+test('toAccounts uses pre-fetched accounts for validation without HTTP calls', function () {
+    Http::fake([
+        '*/posts*' => Http::response([
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 1,
+                    'content' => 'Test',
+                    'status' => 'published',
+                    'account_ids' => [500],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
+            ],
+        ]),
+    ]);
+
+    $account = Account::fromArray([
+        'id' => 500,
+        'name' => 'Cached Account',
+        'type' => 'facebook',
+        'post_maxlength' => 5000,
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    $post = $builder
+        ->content('Test')
+        ->toAccounts($account)
+        ->send();
+
+    expect($post->id)->toBe(1);
+
+    // Should NOT have fetched /accounts/500 — only /posts was called
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/posts'));
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/accounts'));
+});
+
+test('toAccounts validates against pre-fetched account limits', function () {
+    $account = Account::fromArray([
+        'id' => 500,
+        'name' => 'Strict Account',
+        'type' => 'instagram',
+        'post_maxlength' => 10,
+        'post_media_required' => true,
+    ]);
+
+    $builder = new PostBuilder($this->client);
+
+    try {
+        $builder
+            ->content('This is too long for the limit')
+            ->toAccounts($account)
+            ->send();
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('content');
+        expect($e->errors()['content'][0])->toContain('Strict Account');
+        expect($e->errors())->toHaveKey('media');
+    }
+});
+
+test('toAccounts is chainable with multiple accounts', function () {
+    $account1 = Account::fromArray(['id' => 1, 'name' => 'A', 'type' => 'facebook']);
+    $account2 = Account::fromArray(['id' => 2, 'name' => 'B', 'type' => 'twitter']);
+
+    $builder = new PostBuilder($this->client);
+
+    $payload = $builder
+        ->content('Test')
+        ->toAccounts($account1, $account2)
+        ->dryRun();
+
+    expect($payload['accounts'])->toBe([1, 2]);
 });

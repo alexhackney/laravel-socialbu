@@ -223,6 +223,10 @@ class FakeSocialBu implements SocialBuClientInterface
 
     public function getAccountIds(): array
     {
+        if (! empty($this->fakeAccounts)) {
+            return array_map(fn (Account $a) => $a->id, $this->fakeAccounts);
+        }
+
         return [1, 2, 3];
     }
 
