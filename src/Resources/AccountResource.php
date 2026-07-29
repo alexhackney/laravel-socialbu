@@ -25,6 +25,9 @@ class AccountResource
         $query = array_filter([
             'type' => $type,
             'page' => $page,
+            // See PostResource: the API documents `perPage`, but `per_page` is
+            // sent alongside it until the live API confirms which it honours.
+            'perPage' => $perPage,
             'per_page' => $perPage,
         ]);
 
@@ -60,6 +63,9 @@ class AccountResource
         $query = array_filter([
             'type' => $type,
             'page' => $page,
+            // See PostResource: the API documents `perPage`, but `per_page` is
+            // sent alongside it until the live API confirms which it honours.
+            'perPage' => $perPage,
             'per_page' => $perPage,
         ]);
 

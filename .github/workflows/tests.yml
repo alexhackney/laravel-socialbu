@@ -16,7 +16,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           coverage: none
 
       - name: Install dependencies
@@ -32,18 +32,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Laravel 12 is the only line that supports PHP 8.2.
           - php: '8.2'
-            laravel: '11.*'
-            testbench: '9.*'
-          - php: '8.3'
-            laravel: '11.*'
-            testbench: '9.*'
+            laravel: '12.*'
+            testbench: '10.*'
           - php: '8.3'
             laravel: '12.*'
             testbench: '10.*'
           - php: '8.4'
             laravel: '12.*'
             testbench: '10.*'
+          # Laravel 13 requires PHP 8.3+.
+          - php: '8.3'
+            laravel: '13.*'
+            testbench: '11.*'
+          - php: '8.4'
+            laravel: '13.*'
+            testbench: '11.*'
+          - php: '8.5'
+            laravel: '13.*'
+            testbench: '11.*'
 
     steps:
       - uses: actions/checkout@v4
@@ -54,10 +62,15 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
 
+      # Pin laravel/framework rather than a single illuminate/* split: the
+      # framework replaces every illuminate package, so this constrains the
+      # whole stack instead of leaving contracts/http/routing free to drift.
       - name: Install dependencies
         run: |
-          composer require "illuminate/support:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-update
-          composer install --no-interaction --prefer-dist
+          composer require --dev --no-update --no-interaction \
+            "laravel/framework:${{ matrix.laravel }}" \
+            "orchestra/testbench:${{ matrix.testbench }}"
+          composer update --no-interaction --prefer-dist
 
       - name: Run tests
         run: vendor/bin/pest

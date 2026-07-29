@@ -1,0 +1,65 @@
+{
+    "success": true,
+    "accounts": [
+        {
+            "account_id": 123,
+            "account_type": "youtube",
+            "account_name": "My Channel",
+            "options": {
+                "video_title": {
+                    "label": "Video Title",
+                    "type": "string",
+                    "storage": "scalar",
+                    "required": true,
+                    "max_length": 100
+                },
+                "privacy_status": {
+                    "label": "Privacy Status",
+                    "type": "dropdown",
+                    "storage": "scalar",
+                    "required": false,
+                    "default": "public",
+                    "options": [
+                        { "value": "public", "label": "Public" },
+                        { "value": "private", "label": "Private" },
+                        { "value": "unlisted", "label": "Unlisted" }
+                    ]
+                },
+                "made_for_kids": {
+                    "label": "Made for Kids",
+                    "type": "boolean",
+                    "storage": "scalar",
+                    "required": false,
+                    "default": false
+                },
+                "thumbnail": {
+                    "label": "Thumbnail",
+                    "type": "json",
+                    "storage": "file",
+                    "required": false
+                }
+            }
+        },
+        {
+            "account_id": 456,
+            "account_type": "reddit",
+            "account_name": "r/testsubreddit",
+            "options": {
+                "title": {
+                    "label": "Title",
+                    "type": "string",
+                    "storage": "scalar",
+                    "required": true,
+                    "max_length": 300
+                },
+                "is_nsfw": {
+                    "label": "NSFW",
+                    "type": "boolean",
+                    "storage": "scalar",
+                    "required": false,
+                    "default": false
+                }
+            }
+        }
+    ]
+}

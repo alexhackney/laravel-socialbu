@@ -8,6 +8,7 @@ use Generator;
 use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
+use Hei\SocialBu\Data\AccountSupportedOptions;
 use Hei\SocialBu\Data\Insights\InsightStats;
 use Hei\SocialBu\Data\MediaUpload;
 use Hei\SocialBu\Data\PaginatedResponse;
@@ -38,6 +39,15 @@ class FakeSocialBu implements SocialBuClientInterface
     private array $fakePosts = [];
 
     private ?InsightStats $fakeInsightStats = null;
+
+    /** @var array<int, AccountSupportedOptions> */
+    private array $fakeSupportedOptions = [];
+
+    /** @var array<int> */
+    private array $publishedNow = [];
+
+    /** @var array<int> */
+    private array $deleted = [];
 
     private int $nextPostId = 1;
 
@@ -93,6 +103,26 @@ class FakeSocialBu implements SocialBuClientInterface
         $this->fakeInsightStats = $stats instanceof InsightStats
             ? $stats
             : InsightStats::fromArray($stats);
+
+        return $this;
+    }
+
+    /**
+     * Set the publish options accounts report as supported.
+     *
+     * @param  array<AccountSupportedOptions|array>  $options
+     */
+    public function withSupportedOptions(array $options): self
+    {
+        $this->fakeSupportedOptions = [];
+
+        foreach ($options as $entry) {
+            $resolved = $entry instanceof AccountSupportedOptions
+                ? $entry
+                : AccountSupportedOptions::fromArray($entry);
+
+            $this->fakeSupportedOptions[$resolved->accountId] = $resolved;
+        }
 
         return $this;
     }
@@ -197,6 +227,38 @@ class FakeSocialBu implements SocialBuClientInterface
     public function assertUploadedCount(int $count): void
     {
         Assert::assertCount($count, $this->uploads, "Expected {$count} uploads, got ".count($this->uploads));
+    }
+
+    /**
+     * Assert an existing post was published immediately.
+     */
+    public function assertPublishedNow(int $postId): void
+    {
+        Assert::assertContains(
+            $postId,
+            $this->publishedNow,
+            "Expected post {$postId} to be published now, but it was not.",
+        );
+    }
+
+    /**
+     * Assert a post was deleted, whether individually or in bulk.
+     */
+    public function assertDeleted(int $postId): void
+    {
+        Assert::assertContains(
+            $postId,
+            $this->deleted,
+            "Expected post {$postId} to be deleted, but it was not.",
+        );
+    }
+
+    /**
+     * Assert the number of posts deleted.
+     */
+    public function assertDeletedCount(int $count): void
+    {
+        Assert::assertCount($count, $this->deleted, "Expected {$count} deletions, got ".count($this->deleted));
     }
 
     // SocialBuClientInterface implementation
@@ -326,6 +388,64 @@ class FakeSocialBu implements SocialBuClientInterface
 
     /**
      * @internal
+     */
+    public function recordPublishNow(int $postId): Post
+    {
+        if ($this->throwOnPublish) {
+            $e = $this->throwOnPublish;
+            $this->throwOnPublish = null;
+
+            throw $e;
+        }
+
+        $this->publishedNow[] = $postId;
+
+        foreach ($this->fakePosts as $post) {
+            if ($post->id === $postId) {
+                return $post;
+            }
+        }
+
+        return Post::fromArray([
+            'id' => $postId,
+            'content' => 'Fake post',
+            'status' => 'published',
+            'created_at' => now()->toDateTimeString(),
+        ]);
+    }
+
+    /**
+     * @internal
+     *
+     * @param  array<int>  $postIds
+     */
+    public function recordDeleted(array $postIds): void
+    {
+        foreach ($postIds as $postId) {
+            $this->deleted[] = (int) $postId;
+        }
+    }
+
+    /**
+     * @internal
+     *
+     * @param  array<int>|null  $accountIds
+     * @return array<int, AccountSupportedOptions>
+     */
+    public function getFakeSupportedOptions(?array $accountIds = null): array
+    {
+        if ($accountIds === null || $accountIds === []) {
+            return $this->fakeSupportedOptions;
+        }
+
+        return array_intersect_key(
+            $this->fakeSupportedOptions,
+            array_flip(array_map('intval', $accountIds)),
+        );
+    }
+
+    /**
+     * @internal
      *
      * @return array<Account>
      */
@@ -405,7 +525,26 @@ class FakePostResource extends PostResource
 
     public function delete(int $postId): bool
     {
+        $this->fake->recordDeleted([$postId]);
+
         return true;
+    }
+
+    public function publishNow(int $postId): Post
+    {
+        return $this->fake->recordPublishNow($postId);
+    }
+
+    public function bulkDelete(array $postIds): bool
+    {
+        $this->fake->recordDeleted($postIds);
+
+        return true;
+    }
+
+    public function supportedOptions(?array $accountIds = null): array
+    {
+        return $this->fake->getFakeSupportedOptions($accountIds);
     }
 
     public function paginate(?string $type = null, int $page = 1, int $perPage = 15): PaginatedResponse
@@ -497,6 +636,11 @@ class FakeMediaResource extends MediaResource
     public function upload(string $path): MediaUpload
     {
         return $this->fake->recordUpload($path);
+    }
+
+    public function uploadByUrl(string $url, ?string $name = null): MediaUpload
+    {
+        return $this->fake->recordUpload($url);
     }
 }
 

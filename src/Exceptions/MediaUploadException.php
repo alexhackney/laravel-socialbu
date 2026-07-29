@@ -14,6 +14,11 @@ class MediaUploadException extends SocialBuException
 
     public const STEP_CONFIRMATION = 'confirmation';
 
+    /**
+     * The single-request upload flow, where SocialBu fetches the file itself.
+     */
+    public const STEP_URL_UPLOAD = 'url_upload';
+
     public function __construct(
         string $message,
         protected string $step,
@@ -34,6 +39,7 @@ class MediaUploadException extends SocialBuException
             self::STEP_SIGNED_URL => 'Failed to get signed URL for media upload.',
             self::STEP_S3_UPLOAD => 'Failed to upload media to storage.',
             self::STEP_CONFIRMATION => 'Failed to confirm media upload.',
+            self::STEP_URL_UPLOAD => 'Failed to upload media from URL.',
         ];
 
         $statusCode = $previous instanceof SocialBuException
