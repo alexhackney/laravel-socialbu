@@ -120,6 +120,39 @@ test('it throws RateLimitException on 429 with retry-after', function () {
     }
 })->throws(RateLimitException::class, 'Too many requests');
 
+test('it reports a null retryAfter when the Retry-After header is absent', function () {
+    Http::fake([
+        '*' => Http::response(['message' => 'Too many requests'], 429),
+    ]);
+
+    try {
+        $this->client->get('/posts');
+    } catch (RateLimitException $e) {
+        // Response::header() yields '' rather than null for a missing header,
+        // so a naive cast would report 0 seconds and invite a hot retry loop.
+        expect($e->retryAfter())->toBeNull();
+        expect($e->context()['retry_after'])->toBeNull();
+
+        throw $e;
+    }
+})->throws(RateLimitException::class, 'Too many requests');
+
+test('it reports a null retryAfter when Retry-After holds an HTTP date', function () {
+    Http::fake([
+        '*' => Http::response(['message' => 'Too many requests'], 429, [
+            'Retry-After' => 'Wed, 21 Oct 2026 07:28:00 GMT',
+        ]),
+    ]);
+
+    try {
+        $this->client->get('/posts');
+    } catch (RateLimitException $e) {
+        expect($e->retryAfter())->toBeNull();
+
+        throw $e;
+    }
+})->throws(RateLimitException::class, 'Too many requests');
+
 test('it throws ServerException on 5xx errors', function () {
     Http::fake([
         '*' => Http::response(['message' => 'Internal error'], 500),

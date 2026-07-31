@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
 use Hei\SocialBu\Data\Insights\InsightStats;
+use Hei\SocialBu\Data\PaginatedResponse;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Exceptions\SocialBuException;
 use Hei\SocialBu\Exceptions\ValidationException;
@@ -162,7 +164,7 @@ test('create returns PostBuilder', function () {
 
     $builder = $fake->create();
 
-    expect($builder)->toBeInstanceOf(\Hei\SocialBu\Builders\PostBuilder::class);
+    expect($builder)->toBeInstanceOf(PostBuilder::class);
 });
 
 test('published posts get sequential ids', function () {
@@ -221,7 +223,7 @@ test('fake posts().paginate() returns PaginatedResponse', function () {
 
     $response = $fake->posts()->paginate();
 
-    expect($response)->toBeInstanceOf(\Hei\SocialBu\Data\PaginatedResponse::class);
+    expect($response)->toBeInstanceOf(PaginatedResponse::class);
     expect($response->items)->toHaveCount(1);
     expect($response->currentPage)->toBe(1);
 });
@@ -245,7 +247,7 @@ test('fake accounts().paginate() returns PaginatedResponse', function () {
 
     $response = $fake->accounts()->paginate();
 
-    expect($response)->toBeInstanceOf(\Hei\SocialBu\Data\PaginatedResponse::class);
+    expect($response)->toBeInstanceOf(PaginatedResponse::class);
     expect($response->items)->toHaveCount(1);
 });
 
@@ -372,4 +374,75 @@ test('fake insights postCounts returns empty array', function () {
     $counts = $fake->insights()->postCounts('2026-01-01', '2026-02-06');
 
     expect($counts)->toBe([]);
+});
+
+test('fake records publishNow and can assert on it', function () {
+    $fake = FakeSocialBu::fake()->withPosts([
+        ['id' => 77, 'content' => 'Scheduled one', 'created_at' => now()],
+    ]);
+
+    $post = $fake->posts()->publishNow(77);
+
+    expect($post->id)->toBe(77);
+    expect($post->content)->toBe('Scheduled one');
+    $fake->assertPublishedNow(77);
+});
+
+test('fake publishNow synthesises a post when none is seeded', function () {
+    $fake = FakeSocialBu::fake();
+
+    expect($fake->posts()->publishNow(999)->id)->toBe(999);
+    $fake->assertPublishedNow(999);
+});
+
+test('fake records bulk and single deletions together', function () {
+    $fake = FakeSocialBu::fake();
+
+    $fake->posts()->bulkDelete([1, 2, 3]);
+    $fake->posts()->delete(4);
+
+    $fake->assertDeleted(2);
+    $fake->assertDeleted(4);
+    $fake->assertDeletedCount(4);
+});
+
+test('fake supportedOptions returns seeded definitions', function () {
+    $fake = FakeSocialBu::fake()->withSupportedOptions([
+        [
+            'account_id' => 123,
+            'account_type' => 'youtube',
+            'account_name' => 'My Channel',
+            'options' => [
+                'video_title' => ['label' => 'Video Title', 'type' => 'string', 'required' => true, 'max_length' => 100],
+            ],
+        ],
+    ]);
+
+    $options = $fake->posts()->supportedOptions();
+
+    expect($options)->toHaveCount(1);
+    expect($options[123]->accountType)->toBe('youtube');
+    expect($options[123]->option('video_title')->required)->toBeTrue();
+    expect($options[123]->validate(['video_title' => 'ok']))->toBe([]);
+});
+
+test('fake supportedOptions filters by the requested account ids', function () {
+    $fake = FakeSocialBu::fake()->withSupportedOptions([
+        ['account_id' => 123, 'account_type' => 'youtube', 'account_name' => 'A', 'options' => []],
+        ['account_id' => 456, 'account_type' => 'reddit', 'account_name' => 'B', 'options' => []],
+    ]);
+
+    expect(array_keys($fake->posts()->supportedOptions([456])))->toBe([456]);
+    expect(array_keys($fake->posts()->supportedOptions()))->toBe([123, 456]);
+});
+
+test('fake uploadByUrl records the url as an upload', function () {
+    $fake = FakeSocialBu::fake();
+
+    $media = $fake->media()->uploadByUrl('https://example.com/photo.jpg');
+
+    expect($media->uploadToken)->toBe('fake-token-1');
+    expect($media->name)->toBe('photo.jpg');
+    $fake->assertUploaded('https://example.com/photo.jpg');
+    $fake->assertUploadedCount(1);
 });

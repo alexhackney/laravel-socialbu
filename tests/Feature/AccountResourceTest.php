@@ -37,8 +37,11 @@ test('list passes query parameters', function () {
     $this->client->accounts()->list(type: 'user', page: 2, perPage: 25);
 
     Http::assertSent(function ($request) {
+        // The API documents the page size as `perPage`; `per_page` rides along
+        // until the live API confirms which spelling it honours.
         return str_contains($request->url(), 'type=user')
-            && str_contains($request->url(), 'page=2')
+            && str_contains($request->url(), 'page=2&')
+            && str_contains($request->url(), 'perPage=25')
             && str_contains($request->url(), 'per_page=25');
     });
 });

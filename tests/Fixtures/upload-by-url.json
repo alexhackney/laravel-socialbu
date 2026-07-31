@@ -1,0 +1,10 @@
+{
+    "success": true,
+    "message": "Media uploaded successfully.",
+    "name": "photo.jpg",
+    "mime_type": "image/jpeg",
+    "size": 102400,
+    "key": "uploads/by-url-abc123.jpg",
+    "upload_token": "upload-token-by-url-123",
+    "url": "https://cdn.socialbu.com/uploads/by-url-abc123.jpg"
+}

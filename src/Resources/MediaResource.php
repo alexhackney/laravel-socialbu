@@ -44,6 +44,50 @@ class MediaResource
     }
 
     /**
+     * Upload a media file by handing SocialBu a publicly reachable URL.
+     *
+     * SocialBu downloads the file itself and returns an upload token in a
+     * single request, so this avoids the three-step signed URL flow entirely --
+     * no HEAD request, no download through your server, no temp file, and no
+     * status check. The returned token is interchangeable with the one from
+     * upload().
+     *
+     * The URL must be reachable from SocialBu's servers, which is the tradeoff
+     * against upload(): that streams the file through your application, so it
+     * also works for URLs only your network can see.
+     *
+     * Supported types: jpg, jpeg, png, gif, webp, mp4, mov, avi, webm, mkv,
+     * pdf. Maximum 500 MB.
+     *
+     * @param  string|null  $name  Custom filename; derived from the URL if omitted.
+     *
+     * @throws MediaUploadException
+     */
+    public function uploadByUrl(string $url, ?string $name = null): MediaUpload
+    {
+        try {
+            $response = $this->client->post('/upload_media_by_url', array_filter([
+                'url' => $url,
+                'name' => $name,
+            ], fn ($value) => $value !== null));
+        } catch (SocialBuException $e) {
+            throw MediaUploadException::atStep(MediaUploadException::STEP_URL_UPLOAD, $e);
+        }
+
+        $uploadToken = $response['upload_token'] ?? '';
+
+        if ($uploadToken === '' || $uploadToken === null) {
+            throw new MediaUploadException(
+                'Media upload from URL did not return an upload token.',
+                MediaUploadException::STEP_URL_UPLOAD,
+                response: $response,
+            );
+        }
+
+        return MediaUpload::fromArray($response);
+    }
+
+    /**
      * Get a signed URL for uploading.
      *
      * @throws MediaUploadException
@@ -190,8 +234,10 @@ class MediaResource
             );
         }
 
-        $contentLength = (int) ($headResponse->header('Content-Length') ?? 0);
-        $contentType = $headResponse->header('Content-Type') ?? 'application/octet-stream';
+        // Response::header() returns an empty string for absent headers, so
+        // null-coalescing never fires here — fall back on emptiness instead.
+        $contentLength = (int) $headResponse->header('Content-Length');
+        $contentType = $this->normalizeMimeType($headResponse->header('Content-Type'));
         $name = basename(parse_url($url, PHP_URL_PATH) ?: 'file');
 
         // Stream remote file to a temp file to avoid loading into memory
@@ -228,5 +274,19 @@ class MediaResource
             stream: $stream,
             path: $tempFile,
         );
+    }
+
+    /**
+     * Reduce a Content-Type header to a bare mime type.
+     *
+     * Strips any parameters ("image/jpeg; charset=binary") and falls back to a
+     * generic type when the header is absent or unparseable, so we never send
+     * an empty Content-Type on to the signed URL request.
+     */
+    private function normalizeMimeType(string $header): string
+    {
+        $mimeType = trim(explode(';', $header, 2)[0]);
+
+        return $mimeType !== '' ? $mimeType : 'application/octet-stream';
     }
 }

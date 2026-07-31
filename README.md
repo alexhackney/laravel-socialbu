@@ -5,7 +5,19 @@ A Laravel package for the [SocialBu](https://socialbu.com) social media manageme
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11.x or 12.x
+- Laravel 12.x or 13.x
+
+Laravel 13 requires PHP 8.3 or newer, so PHP 8.2 resolves to Laravel 12. The
+supported combinations are:
+
+| PHP | Laravel |
+| --- | --- |
+| 8.2 | 12.x |
+| 8.3 / 8.4 / 8.5 | 12.x or 13.x |
+
+Laravel 11 is no longer supported. Its entire release line is affected by an
+unpatched security advisory, so Composer refuses to install it under the
+default advisory policy.
 
 ## Installation
 
@@ -83,7 +95,64 @@ $post = SocialBu::posts()->create(
 
 SocialBu::posts()->update(123, ['content' => 'Updated!']);
 SocialBu::posts()->delete(123);
+
+// Release a scheduled or draft post immediately
+$post = SocialBu::posts()->publishNow(123);
+
+// Delete many posts in one request
+SocialBu::posts()->bulkDelete([123, 124, 125]);
 ```
+
+`publishNow()` is named to stay distinct from `SocialBu::publish()`, which creates
+a new post rather than releasing one that already exists.
+
+### Supported Post Options
+
+Every network accepts a different `options` payload. Ask the API what each
+account supports instead of guessing:
+
+```php
+$supported = SocialBu::posts()->supportedOptions();        // all accounts
+$supported = SocialBu::posts()->supportedOptions([123]);   // specific accounts
+
+$youtube = $supported[123];                 // keyed by account ID
+
+$youtube->keys();                           // ['video_title', 'privacy_status', ...]
+$youtube->supports('video_title');          // true
+$youtube->requiredOptions();                // only the ones you must provide
+
+$privacy = $youtube->option('privacy_status');
+$privacy->label;                            // 'Privacy Status'
+$privacy->type;                             // 'dropdown'
+$privacy->isDropdown();                     // true
+$privacy->choiceValues();                   // ['public', 'private', 'unlisted']
+$privacy->defaultValue;                     // 'public'
+$privacy->maxLength;                        // null
+```
+
+Check a payload before spending a request on a post the platform would reject.
+`validate()` returns a map of option key to the reason it failed, so an empty
+array means you are good:
+
+```php
+$errors = $youtube->validate([
+    'video_title' => 'My video',
+    'privacy_status' => 'secret',
+]);
+
+// ['privacy_status' => "Option 'privacy_status' must be one of: public, private, unlisted."]
+
+if ($errors === []) {
+    SocialBu::posts()->create(
+        content: 'Hello!',
+        accountIds: [123],
+        options: ['video_title' => 'My video', 'privacy_status' => 'public'],
+    );
+}
+```
+
+It catches unsupported keys, invalid dropdown values, strings over `max_length`,
+and missing required options.
 
 Pagination:
 
@@ -116,7 +185,7 @@ Media uploads use a 3-step signed URL flow (request signed URL, upload to S3, co
 // Local file
 $media = SocialBu::media()->upload('/path/to/image.jpg');
 
-// Remote URL
+// Remote URL -- downloads through your app, then runs the 3-step flow
 $media = SocialBu::media()->upload('https://example.com/photo.jpg');
 
 // Attach to a post
@@ -127,7 +196,30 @@ SocialBu::posts()->create(
 );
 ```
 
-The builder's `->media()` method handles uploads for you, so you typically don't need to call this directly.
+For a URL that SocialBu can reach itself, `uploadByUrl()` is far cheaper --
+SocialBu fetches the file and returns the token in **one request** instead of
+five, with nothing downloaded through your server and no temp file:
+
+```php
+$media = SocialBu::media()->uploadByUrl('https://example.com/photo.jpg');
+
+// Optionally override the stored filename
+$media = SocialBu::media()->uploadByUrl('https://example.com/photo.jpg', 'renamed.jpg');
+
+$media->uploadToken;   // interchangeable with the 3-step flow's token
+$media->toAttachment();
+```
+
+The tradeoff is reachability: `uploadByUrl()` needs a publicly accessible URL,
+while `upload()` streams the file through your application and so also works for
+URLs only your own network can see. Supported types are jpg, jpeg, png, gif,
+webp, mp4, mov, avi, webm, mkv, and pdf, up to 500 MB.
+
+Failures raise `MediaUploadException` with `getStep()` returning `'url_upload'`.
+
+The builder's `->media()` method handles uploads for you, so you typically don't
+need to call this directly. It currently uses `upload()` for every path,
+including remote URLs.
 
 ## Error Handling
 
@@ -171,6 +263,7 @@ Enable in config to receive post and account status updates:
     'enabled' => true,
     'prefix' => 'webhooks/socialbu',
     'middleware' => ['api'],
+    'secret' => env('SOCIALBU_WEBHOOK_SECRET'),
 ],
 ```
 
@@ -178,6 +271,16 @@ This registers two routes:
 
 - `POST /webhooks/socialbu/post` -- post status updates
 - `POST /webhooks/socialbu/account` -- account status updates
+
+Keep the `api` middleware group. Laravel 13 renamed the CSRF middleware to
+`PreventRequestForgery` and added `Sec-Fetch-Site` origin verification on top of
+token checking, so putting these routes in the `web` group will reject SocialBu's
+callbacks -- they are server-to-server and carry no session or CSRF token.
+
+Set `SOCIALBU_WEBHOOK_SECRET` to verify authenticity. When present, the
+controller compares the `X-SocialBu-Signature` header against an HMAC-SHA256 of
+the raw request body and returns 403 on a mismatch. Leaving it unset skips
+verification, which is not recommended in production.
 
 Listen for the dispatched events:
 
@@ -232,21 +335,46 @@ test('it shares to social media', function () {
     $fake->assertUploaded('/path/to/image.jpg');
     $fake->assertUploadedCount(1);
     $fake->assertNothingPublished();
+    $fake->assertPublishedNow(123);
+    $fake->assertDeleted(123);
+    $fake->assertDeletedCount(3);
 });
+```
+
+`assertDeleted()` covers both `delete()` and `bulkDelete()`. Seed supported
+options with `withSupportedOptions()`:
+
+```php
+$fake = FakeSocialBu::fake()->withSupportedOptions([
+    [
+        'account_id' => 123,
+        'account_type' => 'youtube',
+        'account_name' => 'My Channel',
+        'options' => [
+            'video_title' => ['label' => 'Video Title', 'type' => 'string', 'required' => true, 'max_length' => 100],
+        ],
+    ],
+]);
+
+$fake->posts()->supportedOptions()[123]->option('video_title')->required; // true
 ```
 
 Simulate errors:
 
 ```php
-use Hei\SocialBu\Exceptions\PostCreationException;
+use Hei\SocialBu\Exceptions\SocialBuException;
 
 test('it handles publish failures', function () {
     $fake = FakeSocialBu::fake()
-        ->throwOnPublish(new PostCreationException('API down'));
+        ->throwOnPublish(new SocialBuException('API down'));
 
     // ... test your error handling ...
 });
 ```
+
+`throwOnPublish()` and `throwOnUpload()` accept any `Throwable`, so you can
+simulate a specific failure with `AuthenticationException`, `RateLimitException`,
+`ValidationException`, or `MediaUploadException` as needed.
 
 Seed fake data:
 
@@ -277,6 +405,7 @@ return [
         'enabled' => env('SOCIALBU_WEBHOOKS_ENABLED', false),
         'prefix' => env('SOCIALBU_WEBHOOKS_PREFIX', 'webhooks/socialbu'),
         'middleware' => ['api'],
+        'secret' => env('SOCIALBU_WEBHOOK_SECRET'),
     ],
 
     'http' => [

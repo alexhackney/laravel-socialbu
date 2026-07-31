@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hei\SocialBu\Facades;
 
 use Hei\SocialBu\Builders\PostBuilder;
+use Hei\SocialBu\Client\SocialBuClient;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Resources\AccountResource;
@@ -27,7 +28,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static array patch(string $endpoint, array $data = [])
  * @method static array delete(string $endpoint)
  *
- * @see \Hei\SocialBu\Client\SocialBuClient
+ * @see SocialBuClient
  */
 class SocialBu extends Facade
 {

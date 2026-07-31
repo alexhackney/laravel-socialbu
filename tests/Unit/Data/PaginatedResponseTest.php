@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Hei\SocialBu\Data\PaginatedResponse;
+use Illuminate\Support\Collection;
 
 test('it creates paginated response from array', function () {
     $response = PaginatedResponse::fromArray([
@@ -160,7 +161,7 @@ test('collect returns items as collection', function () {
 
     $collection = $response->collect();
 
-    expect($collection)->toBeInstanceOf(\Illuminate\Support\Collection::class);
+    expect($collection)->toBeInstanceOf(Collection::class);
     expect($collection)->toHaveCount(2);
 });
 

@@ -200,12 +200,15 @@ class SocialBuClient implements SocialBuClientInterface
 
     /**
      * Parse the Retry-After header from the response.
+     *
+     * Response::header() returns an empty string for absent headers, never
+     * null, so the emptiness check is what distinguishes "not sent" here.
      */
     private function parseRetryAfter(Response $response): ?int
     {
-        $retryAfter = $response->header('Retry-After');
+        $retryAfter = trim($response->header('Retry-After'));
 
-        if ($retryAfter === null) {
+        if ($retryAfter === '' || ! is_numeric($retryAfter)) {
             return null;
         }
 

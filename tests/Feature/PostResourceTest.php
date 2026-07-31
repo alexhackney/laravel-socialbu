@@ -40,6 +40,21 @@ test('list filters by type', function () {
     });
 });
 
+test('list sends the page size using the documented camelCase parameter', function () {
+    Http::fake([
+        '*/posts*' => Http::response($this->fixture('posts.json')),
+    ]);
+
+    $this->client->posts()->list(perPage: 42);
+
+    Http::assertSent(function ($request) {
+        // The API documents `perPage`; `per_page` rides along until the live
+        // API confirms which spelling it honours.
+        return str_contains($request->url(), 'perPage=42')
+            && str_contains($request->url(), 'per_page=42');
+    });
+});
+
 test('get returns single post', function () {
     Http::fake([
         '*/posts/101*' => Http::response([
@@ -153,6 +168,85 @@ test('delete sends delete request', function () {
     });
 
     expect($result)->toBeTrue();
+});
+
+test('publishNow posts to the publish endpoint and returns the post', function () {
+    Http::fake([
+        '*/posts/101/publish' => Http::response([
+            'success' => true,
+            'post' => [
+                'draft' => false,
+                'approved' => true,
+                'publish_at' => '2026-07-29 14:00:00',
+                '_published' => true,
+            ],
+        ]),
+    ]);
+
+    $post = $this->client->posts()->publishNow(101);
+
+    expect($post)->toBeInstanceOf(Post::class);
+    // The API returns a partial post without an id, so the requested id is
+    // carried through rather than silently becoming 0.
+    expect($post->id)->toBe(101);
+
+    Http::assertSent(function ($request) {
+        return $request->method() === 'POST'
+            && str_ends_with($request->url(), '/posts/101/publish');
+    });
+});
+
+test('publishNow handles a bare post payload with no wrapper', function () {
+    Http::fake([
+        '*/posts/202/publish' => Http::response([
+            'id' => 202,
+            'content' => 'Released',
+            'published' => true,
+        ]),
+    ]);
+
+    $post = $this->client->posts()->publishNow(202);
+
+    expect($post->id)->toBe(202);
+    expect($post->content)->toBe('Released');
+});
+
+test('bulkDelete sends all ids in a single request', function () {
+    Http::fake([
+        '*/posts/bulk_delete' => Http::response('', 200),
+    ]);
+
+    $result = $this->client->posts()->bulkDelete([1, 2, 3]);
+
+    expect($result)->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        return $request->method() === 'POST'
+            && str_ends_with($request->url(), '/posts/bulk_delete')
+            && $request['ids'] === [1, 2, 3];
+    });
+    Http::assertSentCount(1);
+});
+
+test('bulkDelete coerces ids to integers and reindexes gaps', function () {
+    Http::fake([
+        '*/posts/bulk_delete' => Http::response('', 200),
+    ]);
+
+    $this->client->posts()->bulkDelete([5 => '10', 9 => '20']);
+
+    Http::assertSent(function ($request) {
+        // A JSON object would be sent if the keys were not reindexed.
+        return $request['ids'] === [10, 20];
+    });
+});
+
+test('bulkDelete makes no request for an empty list', function () {
+    Http::fake();
+
+    expect($this->client->posts()->bulkDelete([]))->toBeTrue();
+
+    Http::assertNothingSent();
 });
 
 test('paginate returns PaginatedResponse', function () {
