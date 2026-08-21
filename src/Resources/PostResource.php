@@ -66,6 +66,7 @@ class PostResource
      *
      * @param  array<int>  $accountIds
      * @param  array<array{upload_token: string}>|null  $attachments
+     * @param  array<string, mixed>|null  $options  Platform-specific publish options.
      */
     public function create(
         string $content,
@@ -103,6 +104,8 @@ class PostResource
      * Update an existing post.
      *
      * The API returns {"success": bool, "message": string}, not the post object.
+     *
+     * @param  array<string, mixed>  $data  The post fields to change.
      */
     public function update(int $postId, array $data): bool
     {

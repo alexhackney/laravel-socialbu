@@ -12,6 +12,9 @@ class AccountStatusChanged
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $payload  The raw webhook payload.
+     */
     public function __construct(
         public readonly int $accountId,
         public readonly string $accountType,

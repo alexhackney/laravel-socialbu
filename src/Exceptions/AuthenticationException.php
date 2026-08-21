@@ -8,6 +8,10 @@ use Throwable;
 
 class AuthenticationException extends SocialBuException
 {
+    /**
+     * @param  array<array-key, mixed>|null  $response
+     * @param  array<string, mixed>|null  $request
+     */
     public function __construct(
         string $message = 'Authentication failed. Check your API token.',
         ?array $response = null,

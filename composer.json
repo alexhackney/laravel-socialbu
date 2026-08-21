@@ -22,6 +22,7 @@
         "illuminate/support": "^12.0|^13.0"
     },
     "require-dev": {
+        "larastan/larastan": "^3.10",
         "laravel/pint": "^1.0",
         "orchestra/testbench": "^10.0|^11.0",
         "pestphp/pest": "^3.0|^4.0"
@@ -30,6 +31,11 @@
         "psr-4": {
             "Hei\\SocialBu\\": "src/"
         }
+    },
+    "scripts": {
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "lint": "pint --test",
+        "test": "pest"
     },
     "autoload-dev": {
         "psr-4": {

@@ -8,6 +8,10 @@ use Throwable;
 
 class ServerException extends SocialBuException
 {
+    /**
+     * @param  array<array-key, mixed>|null  $response
+     * @param  array<string, mixed>|null  $request
+     */
     public function __construct(
         string $message = 'Server error occurred.',
         int $statusCode = 500,

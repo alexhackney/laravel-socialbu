@@ -12,6 +12,9 @@ class PostStatusChanged
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $payload  The raw webhook payload.
+     */
     public function __construct(
         public readonly int $postId,
         public readonly int $accountId,

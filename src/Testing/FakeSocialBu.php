@@ -68,7 +68,7 @@ class FakeSocialBu implements SocialBuClientInterface
     /**
      * Set accounts to return from the API.
      *
-     * @param  array<Account|array>  $accounts
+     * @param  array<Account|array<string, mixed>>  $accounts
      */
     public function withAccounts(array $accounts): self
     {
@@ -83,7 +83,7 @@ class FakeSocialBu implements SocialBuClientInterface
     /**
      * Set posts to return from the API.
      *
-     * @param  array<Post|array>  $posts
+     * @param  array<Post|array<string, mixed>>  $posts
      */
     public function withPosts(array $posts): self
     {
@@ -97,6 +97,8 @@ class FakeSocialBu implements SocialBuClientInterface
 
     /**
      * Set insight stats to return from the API.
+     *
+     * @param  InsightStats|array<string, mixed>  $stats
      */
     public function withInsightStats(InsightStats|array $stats): self
     {
@@ -110,7 +112,7 @@ class FakeSocialBu implements SocialBuClientInterface
     /**
      * Set the publish options accounts report as supported.
      *
-     * @param  array<AccountSupportedOptions|array>  $options
+     * @param  array<AccountSupportedOptions|array<string, mixed>>  $options
      */
     public function withSupportedOptions(array $options): self
     {
@@ -304,6 +306,9 @@ class FakeSocialBu implements SocialBuClientInterface
         return true;
     }
 
+    /**
+     * @return array<int>
+     */
     public function getAccountIds(): array
     {
         if (! empty($this->fakeAccounts)) {
@@ -313,21 +318,36 @@ class FakeSocialBu implements SocialBuClientInterface
         return [1, 2, 3];
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<array-key, mixed>
+     */
     public function get(string $endpoint, array $query = []): array
     {
         return [];
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<array-key, mixed>
+     */
     public function post(string $endpoint, array $data = []): array
     {
         return [];
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<array-key, mixed>
+     */
     public function patch(string $endpoint, array $data = []): array
     {
         return [];
     }
 
+    /**
+     * @return array<array-key, mixed>
+     */
     public function delete(string $endpoint): array
     {
         return [];
@@ -337,6 +357,8 @@ class FakeSocialBu implements SocialBuClientInterface
 
     /**
      * @internal
+     *
+     * @param  array<string, mixed>  $data  The payload PostResource::create() would have sent.
      */
     public function recordPublish(array $data): Post
     {
@@ -498,6 +520,11 @@ class FakePostResource extends PostResource
         return Post::fromArray(['id' => $postId, 'content' => 'Fake post', 'created_at' => now()]);
     }
 
+    /**
+     * @param  array<int>  $accountIds
+     * @param  array<array{upload_token: string}>|null  $attachments
+     * @param  array<string, mixed>|null  $options
+     */
     public function create(
         string $content,
         array $accountIds,
@@ -518,6 +545,9 @@ class FakePostResource extends PostResource
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public function update(int $postId, array $data): bool
     {
         return true;

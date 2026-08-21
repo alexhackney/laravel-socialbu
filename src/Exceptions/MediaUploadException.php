@@ -19,6 +19,10 @@ class MediaUploadException extends SocialBuException
      */
     public const STEP_URL_UPLOAD = 'url_upload';
 
+    /**
+     * @param  array<array-key, mixed>|null  $response
+     * @param  array<string, mixed>|null  $request
+     */
     public function __construct(
         string $message,
         protected string $step,
@@ -72,6 +76,9 @@ class MediaUploadException extends SocialBuException
         return $this->step;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function context(): array
     {
         return array_merge(parent::context(), [

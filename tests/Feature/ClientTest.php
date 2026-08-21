@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Hei\SocialBu\Client\SocialBuClient;
 use Hei\SocialBu\Exceptions\AuthenticationException;
+use Hei\SocialBu\Exceptions\ForbiddenException;
 use Hei\SocialBu\Exceptions\NotFoundException;
 use Hei\SocialBu\Exceptions\RateLimitException;
 use Hei\SocialBu\Exceptions\ServerException;
@@ -78,6 +79,14 @@ test('it throws AuthenticationException on 401', function () {
 
     $this->client->get('/accounts');
 })->throws(AuthenticationException::class, 'Unauthorized');
+
+test('it throws ForbiddenException on 403', function () {
+    Http::fake([
+        '*' => Http::response(['message' => 'You have reached your plan limit.'], 403),
+    ]);
+
+    $this->client->post('/posts', []);
+})->throws(ForbiddenException::class, 'You have reached your plan limit.');
 
 test('it throws NotFoundException on 404', function () {
     Http::fake([

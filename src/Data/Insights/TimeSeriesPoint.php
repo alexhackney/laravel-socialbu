@@ -11,6 +11,9 @@ final readonly class TimeSeriesPoint
         public int|float $value,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -19,6 +22,9 @@ final readonly class TimeSeriesPoint
         );
     }
 
+    /**
+     * @return array{date: string, value: int|float}
+     */
     public function toArray(): array
     {
         return [

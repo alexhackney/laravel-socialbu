@@ -7,6 +7,7 @@ namespace Hei\SocialBu\Client;
 use Hei\SocialBu\Builders\PostBuilder;
 use Hei\SocialBu\Data\Post;
 use Hei\SocialBu\Exceptions\AuthenticationException;
+use Hei\SocialBu\Exceptions\ForbiddenException;
 use Hei\SocialBu\Exceptions\NotFoundException;
 use Hei\SocialBu\Exceptions\RateLimitException;
 use Hei\SocialBu\Exceptions\ServerException;
@@ -82,11 +83,18 @@ class SocialBuClient implements SocialBuClientInterface
         return $this->token !== null && $this->token !== '';
     }
 
+    /**
+     * @return array<int>
+     */
     public function getAccountIds(): array
     {
         return $this->accountIds;
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<array-key, mixed>
+     */
     public function get(string $endpoint, array $query = []): array
     {
         $response = $this->request()->get($this->url($endpoint), $query);
@@ -94,6 +102,10 @@ class SocialBuClient implements SocialBuClientInterface
         return $this->handleResponse($response, 'GET', $endpoint, $query);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<array-key, mixed>
+     */
     public function post(string $endpoint, array $data = []): array
     {
         $response = $this->request()->post($this->url($endpoint), $data);
@@ -101,6 +113,10 @@ class SocialBuClient implements SocialBuClientInterface
         return $this->handleResponse($response, 'POST', $endpoint, $data);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<array-key, mixed>
+     */
     public function patch(string $endpoint, array $data = []): array
     {
         $response = $this->request()->patch($this->url($endpoint), $data);
@@ -108,6 +124,9 @@ class SocialBuClient implements SocialBuClientInterface
         return $this->handleResponse($response, 'PATCH', $endpoint, $data);
     }
 
+    /**
+     * @return array<array-key, mixed>
+     */
     public function delete(string $endpoint): array
     {
         $response = $this->request()->delete($this->url($endpoint));
@@ -142,6 +161,9 @@ class SocialBuClient implements SocialBuClientInterface
     /**
      * Handle the API response and throw exceptions for errors.
      *
+     * @param  array<string, mixed>  $data  The payload that was sent, echoed back on the exception.
+     * @return array<array-key, mixed>
+     *
      * @throws SocialBuException
      */
     private function handleResponse(
@@ -170,6 +192,7 @@ class SocialBuClient implements SocialBuClientInterface
 
         throw match ($response->status()) {
             401 => new AuthenticationException($message, $body, $request),
+            403 => new ForbiddenException($message, $body, $request),
             404 => new NotFoundException($message, $body, $request),
             422 => new ValidationException(
                 $message,

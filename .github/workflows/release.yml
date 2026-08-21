@@ -27,6 +27,9 @@ jobs:
       - name: Run Pint
         run: vendor/bin/pint --test
 
+      - name: Run PHPStan
+        run: composer analyse -- --no-progress
+
       - name: Run tests
         run: vendor/bin/pest
 

@@ -11,6 +11,11 @@ use Hei\SocialBu\Resources\InsightsResource;
 use Hei\SocialBu\Resources\MediaResource;
 use Hei\SocialBu\Resources\PostResource;
 
+/**
+ * The raw request methods return the decoded JSON body as-is. SocialBu replies
+ * with an object on most endpoints but with a top-level list on others (e.g.
+ * GET /accounts), so the array is keyed by `array-key` rather than `string`.
+ */
 interface SocialBuClientInterface
 {
     /**
@@ -59,21 +64,32 @@ interface SocialBuClientInterface
 
     /**
      * Make a GET request to the API.
+     *
+     * @param  array<string, mixed>  $query
+     * @return array<array-key, mixed>
      */
     public function get(string $endpoint, array $query = []): array;
 
     /**
      * Make a POST request to the API.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<array-key, mixed>
      */
     public function post(string $endpoint, array $data = []): array;
 
     /**
      * Make a PATCH request to the API.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<array-key, mixed>
      */
     public function patch(string $endpoint, array $data = []): array;
 
     /**
      * Make a DELETE request to the API.
+     *
+     * @return array<array-key, mixed>
      */
     public function delete(string $endpoint): array;
 }

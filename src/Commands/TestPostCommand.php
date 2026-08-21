@@ -28,10 +28,24 @@ class TestPostCommand extends Command
             return self::FAILURE;
         }
 
+        $content = $this->argument('content');
+
+        if (! is_string($content)) {
+            $this->error('The post content must be a single string.');
+
+            return self::FAILURE;
+        }
+
         $builder = $client->create()
-            ->content($this->argument('content'));
+            ->content($content);
 
         if ($media = $this->option('media')) {
+            if (! is_string($media)) {
+                $this->error('The --media option must be a single file path.');
+
+                return self::FAILURE;
+            }
+
             if (! file_exists($media)) {
                 $this->error("Media file not found: {$media}");
 
@@ -41,11 +55,23 @@ class TestPostCommand extends Command
         }
 
         if ($schedule = $this->option('schedule')) {
+            if (! is_string($schedule)) {
+                $this->error('The --schedule option must be a single date (Y-m-d H:i:s).');
+
+                return self::FAILURE;
+            }
+
             $builder->scheduledAt($schedule);
         }
 
         $accountIds = $this->option('to');
         if (! empty($accountIds)) {
+            if (! is_array($accountIds)) {
+                $this->error('The --to option must be one or more account IDs.');
+
+                return self::FAILURE;
+            }
+
             $builder->to(array_map('intval', $accountIds));
         }
 
@@ -53,7 +79,7 @@ class TestPostCommand extends Command
             if ($this->option('dry-run')) {
                 $payload = $builder->dryRun();
                 $this->info('Dry run - payload that would be sent:');
-                $this->line(json_encode($payload, JSON_PRETTY_PRINT));
+                $this->line(json_encode($payload, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
                 return self::SUCCESS;
             }

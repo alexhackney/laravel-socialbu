@@ -14,6 +14,9 @@ final readonly class InsightStats
         public int $inactiveAccounts,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -25,6 +28,9 @@ final readonly class InsightStats
         );
     }
 
+    /**
+     * @return array{unreadFeeds: int, userAutomations: int, userPendingPosts: int, userFailedPosts: int, inactiveAccounts: int}
+     */
     public function toArray(): array
     {
         return [

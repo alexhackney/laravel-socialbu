@@ -23,6 +23,9 @@ final readonly class Post
         public ?CarbonImmutable $updatedAt = null,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -41,6 +44,9 @@ final readonly class Post
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return array_filter([
@@ -72,6 +78,8 @@ final readonly class Post
 
     /**
      * Derive a status string from boolean flags when no `status` field is present.
+     *
+     * @param  array<string, mixed>  $data
      */
     private static function deriveStatus(array $data): string
     {
@@ -95,6 +103,7 @@ final readonly class Post
     }
 
     /**
+     * @param  array<string, mixed>  $data
      * @return array<int>
      */
     private static function parseAccountIds(array $data): array

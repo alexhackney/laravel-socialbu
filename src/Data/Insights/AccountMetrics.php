@@ -14,6 +14,9 @@ final readonly class AccountMetrics
         public array $metrics,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         $metrics = [];
@@ -31,6 +34,9 @@ final readonly class AccountMetrics
         );
     }
 
+    /**
+     * @return array{account_id: int, metrics: array<string, array<array{date: string, value: int|float}>>}
+     */
     public function toArray(): array
     {
         $metrics = [];
