@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-08-21
+
 ### Added
 
 - PHPStan static analysis at level 8 with larastan, with no baseline. Runs in
