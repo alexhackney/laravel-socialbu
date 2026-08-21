@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SocialBuException`, forcing consumers to match on the message string. It
   extends `SocialBuException`, so existing catch blocks keep working.
 
+### Changed
+
+- Releases are now cut from the Actions tab (`Release` → Run workflow) instead
+  of by hand-pushed tags. The workflow runs Pint, PHPStan, and the test suite,
+  promotes this file's Unreleased section to the new version, commits, tags,
+  and publishes the GitHub release with those notes. The version is computed
+  from the latest tag by the chosen semver bump, or set explicitly via the
+  version field.
+- GitHub Actions checkout updated to v5, clearing the Node 20 deprecation
+  warnings on every CI job.
+
 ### Fixed
 
 - A media-upload response carrying a non-string `upload_token` now throws
