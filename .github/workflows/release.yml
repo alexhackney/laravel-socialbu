@@ -1,19 +1,44 @@
 name: Release
 
+# Cut a release from the Actions tab: pick the semver bump, and this workflow
+# runs the full check suite, promotes the CHANGELOG's Unreleased section to the
+# new version, commits, tags, pushes, and publishes the GitHub release with
+# those notes. Packagist picks the new tag up through the GitHub webhook.
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Semver bump for this release (ignored when an explicit version is given)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: 'Explicit version override, e.g. 1.6.1 (leave empty to compute from the latest tag)'
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  tests:
-    name: Tests
+  release:
+    name: Tag & Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Refuse to release from a non-main ref
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Releases must be cut from main (got ${GITHUB_REF})." >&2
+          exit 1
+
+      # Full history so the latest v* tag is visible for version computation.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -33,14 +58,63 @@ jobs:
       - name: Run tests
         run: vendor/bin/pest
 
-  release:
-    name: Create Release
-    needs: tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Compute next version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            version="${{ inputs.version }}"
+            version="${version#v}"
+            if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "Explicit version '${version}' is not X.Y.Z." >&2
+              exit 1
+            fi
+            echo "Releasing v${version} (explicit override)"
+          else
+            # Tags may be v-prefixed or bare, and may omit the patch segment
+            # (e.g. v1.6) — missing segments default to 0 before bumping.
+            latest="$(git tag --list 'v[0-9]*' '[0-9]*' --sort=-v:refname | head -n 1)"
+            latest="${latest:-v0.0.0}"
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            major="${major:-0}"; minor="${minor:-0}"; patch="${patch:-0}"
+            case "${{ inputs.bump }}" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+            version="${major}.${minor}.${patch}"
+            echo "Releasing v${version} (previous: ${latest})"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Promote the Unreleased changelog section
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          today="$(date -u +%Y-%m-%d)"
+
+          # Everything between "## [Unreleased]" and the next "## [" heading
+          # becomes this release's notes.
+          awk '/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "CHANGELOG.md has an empty Unreleased section — nothing to release." >&2
+            exit 1
+          fi
+
+          sed -i "s/^## \[Unreleased\]/## [Unreleased]\n\n## [${version}] - ${today}/" CHANGELOG.md
+
+      - name: Commit, tag, and push
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: release v${version}"
+          git tag "v${version}"
+          git push origin main "v${version}"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          gh release create "v${version}" --title "v${version}" --notes-file "$RUNNER_TEMP/notes.md"
