@@ -24,9 +24,17 @@ class ListAccountsCommand extends Command
             return self::FAILURE;
         }
 
+        $type = $this->option('type');
+
+        if ($type !== null && ! is_string($type)) {
+            $this->error('The --type option must be a single value (user or shared).');
+
+            return self::FAILURE;
+        }
+
         try {
             $accounts = $client->accounts()->all(
-                type: $this->option('type'),
+                type: $type,
             );
 
             if (empty($accounts)) {
@@ -38,7 +46,7 @@ class ListAccountsCommand extends Command
             if ($this->option('json')) {
                 $this->line(json_encode(
                     array_map(fn ($a) => $a->toArray(), $accounts),
-                    JSON_PRETTY_PRINT
+                    JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR
                 ));
 
                 return self::SUCCESS;

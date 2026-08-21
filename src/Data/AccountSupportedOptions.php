@@ -20,6 +20,9 @@ final readonly class AccountSupportedOptions
         public array $options,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         $options = [];
@@ -38,6 +41,9 @@ final readonly class AccountSupportedOptions
         );
     }
 
+    /**
+     * @return array{account_id: int, account_type: string, account_name: string, options: array<string, array<string, mixed>>}
+     */
     public function toArray(): array
     {
         return [

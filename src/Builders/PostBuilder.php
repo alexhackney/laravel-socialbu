@@ -30,6 +30,7 @@ class PostBuilder
 
     private ?string $postbackUrl = null;
 
+    /** @var array<string, mixed>|null */
     private ?array $options = null;
 
     public function __construct(
@@ -142,6 +143,8 @@ class PostBuilder
 
     /**
      * Set platform-specific options (e.g. Reddit title, TikTok privacy).
+     *
+     * @param  array<string, mixed>  $options  Keyed by the option keys the account reports as supported.
      */
     public function withOptions(array $options): self
     {
@@ -152,6 +155,8 @@ class PostBuilder
 
     /**
      * Validate and return the payload without sending.
+     *
+     * @return array<string, mixed>
      *
      * @throws ValidationException
      */
@@ -287,6 +292,8 @@ class PostBuilder
      *
      * Note: Media files listed in pending_uploads would be uploaded
      * and replaced with existing_attachments tokens when send() is called.
+     *
+     * @return array<string, mixed>
      */
     private function buildPayload(): array
     {

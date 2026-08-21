@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PHPStan static analysis at level 8 with larastan, with no baseline. Runs in
+  CI alongside Pint and the test matrix, and gates releases. Locally:
+  `composer analyse`.
+
+- `ForbiddenException`, thrown on 403 responses. SocialBu returns 403 when a
+  plan limit is exceeded (e.g. the monthly post quota) as well as for
+  insufficient permissions; previously both surfaced as the generic
+  `SocialBuException`, forcing consumers to match on the message string. It
+  extends `SocialBuException`, so existing catch blocks keep working.
+
+### Fixed
+
+- A media-upload response carrying a non-string `upload_token` now throws
+  `MediaUploadException` like other malformed upload responses, instead of
+  escaping as a raw `TypeError`.
+
 ## [2.0.0] - 2026-07-29
 
 ### Added

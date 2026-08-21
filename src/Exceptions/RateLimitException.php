@@ -8,6 +8,10 @@ use Throwable;
 
 class RateLimitException extends SocialBuException
 {
+    /**
+     * @param  array<array-key, mixed>|null  $response
+     * @param  array<string, mixed>|null  $request
+     */
     public function __construct(
         string $message = 'Rate limit exceeded.',
         protected ?int $retryAfter = null,
@@ -26,6 +30,9 @@ class RateLimitException extends SocialBuException
         return $this->retryAfter;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function context(): array
     {
         return array_merge(parent::context(), [

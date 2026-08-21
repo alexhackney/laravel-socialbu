@@ -19,6 +19,9 @@ final readonly class PaginatedResponse
         public int $total,
     ) {}
 
+    /**
+     * @param  array<array-key, mixed>  $data  A raw API response: either a wrapper object or a bare list.
+     */
     public static function fromArray(array $data, string $itemsKey = 'data'): self
     {
         // Handle plain array response (no wrapper object)

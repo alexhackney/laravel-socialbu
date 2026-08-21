@@ -15,6 +15,9 @@ final readonly class MediaUpload
         public string $name,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -27,6 +30,9 @@ final readonly class MediaUpload
         );
     }
 
+    /**
+     * @return array{upload_token: string, key: string, url: string, secure_key: string, mime_type: string, name: string}
+     */
     public function toArray(): array
     {
         return [
@@ -41,6 +47,8 @@ final readonly class MediaUpload
 
     /**
      * Get the payload for attaching to a post.
+     *
+     * @return array{upload_token: string}
      */
     public function toAttachment(): array
     {

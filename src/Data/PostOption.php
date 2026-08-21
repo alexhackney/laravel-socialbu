@@ -33,6 +33,9 @@ final readonly class PostOption
         public array $choices,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(string $key, array $data): self
     {
         $choices = array_values(array_map(
@@ -57,6 +60,9 @@ final readonly class PostOption
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [

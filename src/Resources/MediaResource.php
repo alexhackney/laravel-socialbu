@@ -74,9 +74,11 @@ class MediaResource
             throw MediaUploadException::atStep(MediaUploadException::STEP_URL_UPLOAD, $e);
         }
 
-        $uploadToken = $response['upload_token'] ?? '';
+        // SocialBu answers 200 with a null token while the file is still being
+        // fetched, so an absent or blank token is a failure, not a success.
+        $uploadToken = $response['upload_token'] ?? null;
 
-        if ($uploadToken === '' || $uploadToken === null) {
+        if (! is_string($uploadToken) || $uploadToken === '') {
             throw new MediaUploadException(
                 'Media upload from URL did not return an upload token.',
                 MediaUploadException::STEP_URL_UPLOAD,
@@ -89,6 +91,8 @@ class MediaResource
 
     /**
      * Get a signed URL for uploading.
+     *
+     * @return array<string, mixed> The signed_url, key, url and secure_key for the pending upload.
      *
      * @throws MediaUploadException
      */
@@ -112,12 +116,20 @@ class MediaResource
     private function uploadToStorage(string $signedUrl, ResolvedFile $file): void
     {
         try {
+            $contents = is_resource($file->stream)
+                ? stream_get_contents($file->stream)
+                : false;
+
+            if ($contents === false) {
+                throw new SocialBuException("Could not read media file for upload: {$file->name}");
+            }
+
             $response = Http::withHeaders([
                 'Content-Type' => $file->mimeType,
                 'Content-Length' => (string) $file->size,
                 'x-amz-acl' => 'private',
             ])->withBody(
-                stream_get_contents($file->stream),
+                $contents,
                 $file->mimeType
             )->put($signedUrl);
 
@@ -140,6 +152,8 @@ class MediaResource
     /**
      * Confirm the upload and get the upload token.
      *
+     * @param  array<string, mixed>  $signed  The response from getSignedUrl().
+     *
      * @throws MediaUploadException
      */
     private function confirmUpload(array $signed, ResolvedFile $file): MediaUpload
@@ -149,9 +163,9 @@ class MediaResource
                 'key' => $signed['key'],
             ]);
 
-            $uploadToken = $status['upload_token'] ?? '';
+            $uploadToken = $status['upload_token'] ?? null;
 
-            if ($uploadToken === '' || $uploadToken === null) {
+            if (! is_string($uploadToken) || $uploadToken === '') {
                 throw new MediaUploadException(
                     'Media upload confirmation did not return an upload token. The file may still be processing.',
                     MediaUploadException::STEP_CONFIRMATION,

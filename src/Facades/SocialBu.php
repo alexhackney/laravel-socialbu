@@ -23,10 +23,10 @@ use Illuminate\Support\Facades\Facade;
  * @method static Post publish(string $content, ?string $mediaPath = null)
  * @method static bool isConfigured()
  * @method static array<int> getAccountIds()
- * @method static array get(string $endpoint, array $query = [])
- * @method static array post(string $endpoint, array $data = [])
- * @method static array patch(string $endpoint, array $data = [])
- * @method static array delete(string $endpoint)
+ * @method static array<array-key, mixed> get(string $endpoint, array<string, mixed> $query = [])
+ * @method static array<array-key, mixed> post(string $endpoint, array<string, mixed> $data = [])
+ * @method static array<array-key, mixed> patch(string $endpoint, array<string, mixed> $data = [])
+ * @method static array<array-key, mixed> delete(string $endpoint)
  *
  * @see SocialBuClient
  */

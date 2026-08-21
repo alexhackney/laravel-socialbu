@@ -6,10 +6,16 @@ namespace Hei\SocialBu\Webhooks;
 
 final readonly class WebhookPayload
 {
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public function __construct(
         public array $data,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         // Webhook payloads are flat (no nesting under a 'data' key).

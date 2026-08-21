@@ -25,6 +25,9 @@ final readonly class Account
         public ?bool $postMediaRequired = null,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -43,6 +46,9 @@ final readonly class Account
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return array_filter([

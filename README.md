@@ -227,6 +227,7 @@ All exceptions extend `SocialBuException` and include request/response context f
 
 ```php
 use Hei\SocialBu\Exceptions\AuthenticationException;
+use Hei\SocialBu\Exceptions\ForbiddenException;
 use Hei\SocialBu\Exceptions\ValidationException;
 use Hei\SocialBu\Exceptions\RateLimitException;
 use Hei\SocialBu\Exceptions\NotFoundException;
@@ -237,6 +238,9 @@ try {
     SocialBu::publish('Hello!');
 } catch (AuthenticationException $e) {
     // 401 - invalid or missing token
+} catch (ForbiddenException $e) {
+    // 403 - plan limit exceeded (e.g. monthly post quota) or
+    // insufficient permissions; the API message says which
 } catch (ValidationException $e) {
     $e->errors(); // ['field' => ['message', ...]]
 } catch (RateLimitException $e) {
@@ -251,6 +255,31 @@ try {
 
 // All exceptions provide logging context
 Log::error('SocialBu failed', $e->context());
+```
+
+### Limits and quotas
+
+SocialBu enforces two kinds of limits, both server-side:
+
+- **Plan quotas** — your subscription caps posts per month. Exceeding one
+  surfaces as a `ForbiddenException`.
+- **Network limits** — the social platforms cap daily activity themselves
+  (e.g. Instagram allows 25 posts per day); SocialBu relays those failures.
+
+The package keeps no client-side counters — posts made from the SocialBu
+dashboard or other apps count against the same quotas, so the server is the
+only source of truth. Decide how to respond where your app's policy lives,
+for example in a queued job:
+
+```php
+public function handle(): void
+{
+    try {
+        SocialBu::publish($this->content);
+    } catch (RateLimitException $e) {
+        $this->release($e->retryAfter() ?? 300);
+    }
+}
 ```
 
 ## Webhooks

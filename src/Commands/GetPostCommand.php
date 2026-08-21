@@ -31,7 +31,7 @@ class GetPostCommand extends Command
             $post = $client->posts()->get($postId);
 
             if ($this->option('json')) {
-                $this->line(json_encode($post->toArray(), JSON_PRETTY_PRINT));
+                $this->line(json_encode($post->toArray(), JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
                 return self::SUCCESS;
             }
