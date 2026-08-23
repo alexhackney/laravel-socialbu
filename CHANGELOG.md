@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-08-23
+
 ### Changed
 
 - `PostBuilder::media()` now routes remote URLs through `uploadByUrl()`, so
