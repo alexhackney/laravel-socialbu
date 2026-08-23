@@ -249,7 +249,7 @@ class MediaResource
         }
 
         // Response::header() returns an empty string for absent headers, so
-        // null-coalescing never fires here — fall back on emptiness instead.
+        // null-coalescing never fires here, so fall back on emptiness instead.
         $contentLength = (int) $headResponse->header('Content-Length');
         $contentType = $this->normalizeMimeType($headResponse->header('Content-Type'));
         $name = basename(parse_url($url, PHP_URL_PATH) ?: 'file');

@@ -71,7 +71,7 @@ jobs:
             echo "Releasing v${version} (explicit override)"
           else
             # Tags may be v-prefixed or bare, and may omit the patch segment
-            # (e.g. v1.6) — missing segments default to 0 before bumping.
+            # (e.g. v1.6), and missing segments default to 0 before bumping.
             latest="$(git tag --list 'v[0-9]*' '[0-9]*' --sort=-v:refname | head -n 1)"
             latest="${latest:-v0.0.0}"
             IFS=. read -r major minor patch <<< "${latest#v}"
@@ -96,7 +96,7 @@ jobs:
           awk '/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
 
           if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
-            echo "CHANGELOG.md has an empty Unreleased section — nothing to release." >&2
+            echo "CHANGELOG.md has an empty Unreleased section - nothing to release." >&2
             exit 1
           fi
 
