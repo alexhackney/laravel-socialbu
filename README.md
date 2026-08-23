@@ -218,8 +218,9 @@ webp, mp4, mov, avi, webm, mkv, and pdf, up to 500 MB.
 Failures raise `MediaUploadException` with `getStep()` returning `'url_upload'`.
 
 The builder's `->media()` method handles uploads for you, so you typically don't
-need to call this directly. It currently uses `upload()` for every path,
-including remote URLs.
+need to call this directly. Remote URLs go through `uploadByUrl()` automatically,
+falling back to the streaming `upload()` when SocialBu cannot fetch the URL
+itself (e.g. one only your network can reach). Local paths always use `upload()`.
 
 ## Error Handling
 

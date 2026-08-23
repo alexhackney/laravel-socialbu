@@ -8,7 +8,9 @@ use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Hei\SocialBu\Client\SocialBuClientInterface;
 use Hei\SocialBu\Data\Account;
+use Hei\SocialBu\Data\MediaUpload;
 use Hei\SocialBu\Data\Post;
+use Hei\SocialBu\Exceptions\MediaUploadException;
 use Hei\SocialBu\Exceptions\ValidationException;
 
 class PostBuilder
@@ -280,11 +282,31 @@ class PostBuilder
         $attachments = [];
 
         foreach ($this->mediaPaths as $path) {
-            $upload = $this->client->media()->upload($path);
-            $attachments[] = $upload->toAttachment();
+            $attachments[] = $this->uploadOne($path)->toAttachment();
         }
 
         return $attachments;
+    }
+
+    /**
+     * Upload a single media path, picking the cheapest route.
+     *
+     * Remote URLs go through uploadByUrl(), where SocialBu fetches the file
+     * itself in one request. That requires a publicly reachable URL, so on
+     * failure the URL falls back to upload(), which streams the file through
+     * this application and also works for URLs only this network can see.
+     */
+    private function uploadOne(string $path): MediaUpload
+    {
+        if (! str_starts_with($path, 'http://') && ! str_starts_with($path, 'https://')) {
+            return $this->client->media()->upload($path);
+        }
+
+        try {
+            return $this->client->media()->uploadByUrl($path);
+        } catch (MediaUploadException) {
+            return $this->client->media()->upload($path);
+        }
     }
 
     /**

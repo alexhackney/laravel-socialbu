@@ -18,7 +18,7 @@ class ForbiddenException extends SocialBuException
      * @param  array<string, mixed>|null  $request
      */
     public function __construct(
-        string $message = 'Forbidden — plan limit exceeded or insufficient permissions.',
+        string $message = 'Forbidden: plan limit exceeded or insufficient permissions.',
         ?array $response = null,
         ?array $request = null,
         ?Throwable $previous = null,

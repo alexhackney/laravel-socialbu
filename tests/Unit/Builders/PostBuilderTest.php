@@ -617,3 +617,166 @@ test('toAccounts is chainable with multiple accounts', function () {
 
     expect($payload['accounts'])->toBe([1, 2]);
 });
+
+test('send routes remote URL media through uploadByUrl', function () {
+    Http::fake([
+        '*/accounts/*' => Http::response([
+            'id' => 100,
+            'name' => 'Test Account',
+            'type' => 'facebook',
+            'status' => 'active',
+        ]),
+        '*/upload_media_by_url' => Http::response([
+            'success' => true,
+            'name' => 'photo.jpg',
+            'mime_type' => 'image/jpeg',
+            'size' => 102400,
+            'key' => 'uploads/by-url-abc123.jpg',
+            'upload_token' => 'token-url-789',
+            'url' => 'https://cdn.example.com/photo.jpg',
+        ]),
+        '*/posts*' => Http::response([
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 123,
+                    'content' => 'With media!',
+                    'status' => 'published',
+                    'account_ids' => [100],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->client->create()
+        ->content('With media!')
+        ->media('https://example.com/photo.jpg')
+        ->send();
+
+    Http::assertSent(function ($request) {
+        return str_ends_with($request->url(), '/upload_media_by_url')
+            && $request['url'] === 'https://example.com/photo.jpg';
+    });
+
+    // The three-step flow must not run when the single-request route succeeds.
+    Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/upload_media'));
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/posts') || str_contains($request->url(), '/upload')) {
+            return true;
+        }
+
+        return isset($request['existing_attachments'])
+            && $request['existing_attachments'][0]['upload_token'] === 'token-url-789';
+    });
+});
+
+test('send falls back to the streaming upload when uploadByUrl fails', function () {
+    Http::fake([
+        '*/accounts/*' => Http::response([
+            'id' => 100,
+            'name' => 'Test Account',
+            'type' => 'facebook',
+            'status' => 'active',
+        ]),
+        // A 200 with a null token means SocialBu is still fetching the file,
+        // which uploadByUrl() treats as a failure.
+        '*/upload_media_by_url' => Http::response([
+            'success' => true,
+            'upload_token' => null,
+        ]),
+        'https://example.com/photo.jpg' => Http::response('fake image data', 200, [
+            'Content-Type' => 'image/jpeg',
+            'Content-Length' => '15',
+        ]),
+        '*/upload_media' => Http::response([
+            'signed_url' => 'https://s3.example.com/upload',
+            'key' => 'uploads/test.jpg',
+            'url' => 'https://cdn.example.com/test.jpg',
+            'secure_key' => 'secure-123',
+        ]),
+        's3.example.com/*' => Http::response('', 200),
+        '*/upload_media/status*' => Http::response([
+            'success' => true,
+            'upload_token' => 'token-456',
+        ]),
+        '*/posts*' => Http::response([
+            'success' => true,
+            'posts' => [
+                [
+                    'id' => 123,
+                    'content' => 'With media!',
+                    'status' => 'published',
+                    'account_ids' => [100],
+                    'created_at' => '2025-01-15 10:00:00',
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->client->create()
+        ->content('With media!')
+        ->media('https://example.com/photo.jpg')
+        ->send();
+
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), '/upload_media_by_url'));
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), '/upload_media'));
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/posts') || str_contains($request->url(), '/upload')) {
+            return true;
+        }
+
+        return isset($request['existing_attachments'])
+            && $request['existing_attachments'][0]['upload_token'] === 'token-456';
+    });
+});
+
+test('send uploads local paths through the streaming flow, not uploadByUrl', function () {
+    $tempFile = tempnam(sys_get_temp_dir(), 'socialbu_test_');
+    file_put_contents($tempFile, 'fake image');
+
+    try {
+        Http::fake([
+            '*/accounts/*' => Http::response([
+                'id' => 100,
+                'name' => 'Test Account',
+                'type' => 'facebook',
+                'status' => 'active',
+            ]),
+            '*/upload_media' => Http::response([
+                'signed_url' => 'https://s3.example.com/upload',
+                'key' => 'uploads/test.jpg',
+                'url' => 'https://cdn.example.com/test.jpg',
+                'secure_key' => 'secure-123',
+            ]),
+            's3.example.com/*' => Http::response('', 200),
+            '*/upload_media/status*' => Http::response([
+                'success' => true,
+                'upload_token' => 'token-456',
+            ]),
+            '*/posts*' => Http::response([
+                'success' => true,
+                'posts' => [
+                    [
+                        'id' => 123,
+                        'content' => 'With media!',
+                        'status' => 'published',
+                        'account_ids' => [100],
+                        'created_at' => '2025-01-15 10:00:00',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->client->create()
+            ->content('With media!')
+            ->media($tempFile)
+            ->send();
+
+        Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/upload_media_by_url'));
+    } finally {
+        unlink($tempFile);
+    }
+});

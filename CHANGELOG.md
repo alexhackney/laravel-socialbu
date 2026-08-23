@@ -7,19 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `PostBuilder::media()` now routes remote URLs through `uploadByUrl()`, so
+  SocialBu fetches the file itself in a single request instead of the file
+  downloading through your application before the three-step upload flow. If
+  SocialBu cannot fetch the URL (e.g. it is only reachable from your own
+  network), the builder falls back to the streaming `upload()` automatically,
+  so previously working URLs keep working. Local paths are unchanged.
+- `ForbiddenException`'s default message now reads "Forbidden: plan limit
+  exceeded or insufficient permissions."
+
 ## [1.6.1] - 2026-08-21
-
-### Added
-
-- PHPStan static analysis at level 8 with larastan, with no baseline. Runs in
-  CI alongside Pint and the test matrix, and gates releases. Locally:
-  `composer analyse`.
-
-- `ForbiddenException`, thrown on 403 responses. SocialBu returns 403 when a
-  plan limit is exceeded (e.g. the monthly post quota) as well as for
-  insufficient permissions; previously both surfaced as the generic
-  `SocialBuException`, forcing consumers to match on the message string. It
-  extends `SocialBuException`, so existing catch blocks keep working.
 
 ### Changed
 
@@ -32,13 +31,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions checkout updated to v5, clearing the Node 20 deprecation
   warnings on every CI job.
 
+## [1.6.0] - 2026-08-21
+
+### Added
+
+- PHPStan static analysis at level 8 with larastan, with no baseline. Runs in
+  CI alongside Pint and the test matrix. Locally: `composer analyse`.
+- `ForbiddenException`, thrown on 403 responses. SocialBu returns 403 when a
+  plan limit is exceeded (e.g. the monthly post quota) as well as for
+  insufficient permissions; previously both surfaced as the generic
+  `SocialBuException`, forcing consumers to match on the message string. It
+  extends `SocialBuException`, so existing catch blocks keep working.
+
 ### Fixed
 
 - A media-upload response carrying a non-string `upload_token` now throws
   `MediaUploadException` like other malformed upload responses, instead of
   escaping as a raw `TypeError`.
 
-## [2.0.0] - 2026-07-29
+## [1.5.0] - 2026-07-31
+
+*This release was previously listed in this file as `[2.0.0]`, but it shipped
+and was tagged as `v1.5.0`. Dropping Laravel 11 is a breaking change in strict
+semver terms and rode in a minor release; recorded here as it happened.*
 
 ### Added
 
@@ -97,7 +112,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `; charset=binary` are now stripped, so `image/jpeg; charset=binary` is sent as
   `image/jpeg`.
 
-## [1.0.0] - 2025-02-05
+## [1.4.1] - 2026-02-06
+
+### Fixed
+
+- `publish_at` parameter handling when creating posts.
+
+## [1.4.0] - 2026-02-06
+
+### Added
+
+- `InsightsResource` covering the insights endpoints (post counts, post
+  metrics, top posts, account metrics, followers and growth, engagement, team
+  metrics and activity), with typed data classes under `Data/Insights`.
+
+## [1.3.0] - 2026-02-06
+
+### Added
+
+- Pre-flight validation: account capability fields (`post_maxlength`,
+  `max_attachments`, `attachment_types`, `post_media_required`),
+  account-aware validation in `PostBuilder::send()`, and `toAccounts()` for
+  zero-HTTP-call validation with pre-fetched accounts.
+
+## [1.2.0] - 2026-02-06
+
+### Fixed
+
+- Structure of the data objects returned from the API wrapper.
+
+## [1.0.0] - 2026-02-05
 
 ### Added
 
